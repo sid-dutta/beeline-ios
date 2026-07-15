@@ -50,7 +50,8 @@ struct MapScreen: View {
         .onChange(of: model.activeRoute?.title) {
             guard let active = model.activeRoute else { return }
             state = .route
-            withAnimation { camera = .region(region(fitting: active.route.coordinates)) }
+            let shown = model.selectedTrip?.coordinates ?? active.route.coordinates
+            withAnimation { camera = .region(region(fitting: shown)) }
             panel = .expanded
         }
     }
@@ -82,8 +83,28 @@ struct MapScreen: View {
             }
 
             if let active = model.activeRoute {
-                MapPolyline(coordinates: active.route.coordinates.map(\.clCoordinate))
-                    .stroke(Color.beelineRoute, style: StrokeStyle(lineWidth: 6, lineCap: .round, lineJoin: .round))
+                // A bus trip draws its own walk-ride-walk path; a walking
+                // route draws the footpath.
+                if let trip = model.selectedTrip, !trip.isWalkOnly {
+                    ForEach(Array(trip.legs.enumerated()), id: \.offset) { _, leg in
+                        switch leg {
+                        case .walk(_, _, let coords, _):
+                            MapPolyline(coordinates: coords.map(\.clCoordinate))
+                                .stroke(Color.beelineRoute, style: StrokeStyle(lineWidth: 5, lineCap: .round, dash: [2, 8]))
+                        case .ride(let routeID, _, _, _, _, _, let coords):
+                            MapPolyline(coordinates: coords.map(\.clCoordinate))
+                                .stroke(
+                                    Color(hex: model.route(routeID)?.color ?? "#888888"),
+                                    style: StrokeStyle(lineWidth: 7, lineCap: .round, lineJoin: .round)
+                                )
+                        case .wait:
+                            EmptyMapContent()
+                        }
+                    }
+                } else {
+                    MapPolyline(coordinates: active.route.coordinates.map(\.clCoordinate))
+                        .stroke(Color.beelineRoute, style: StrokeStyle(lineWidth: 6, lineCap: .round, lineJoin: .round))
+                }
                 if let start = active.route.coordinates.first {
                     Annotation("Start", coordinate: start.clCoordinate, anchor: .center) {
                         Circle()

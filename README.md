@@ -16,6 +16,7 @@ GT's official map stops at the building outline, and the bus app shows a route m
 - **Tell you where the room is** — for Clough, the actual published floor plan with your room ringed on it and a floor picker down the side. Everywhere else, floor and wing decoded from the room number, with per-building rules for the ones that break convention (Howey's `L3` lecture halls, Klaus's atrium halls, College of Computing's two-digit rooms). The app says which of the two it's showing, because the confidence differs.
 - **Know your schedule** — add your sections and the map opens on "next class, 6 min walk, leave by 1:24".
 - **Show the buses** — all nine Stinger routes with live vehicle positions and per-stop arrival estimates on the same screen.
+- **Walk or ride?** — for any destination it plans walk-bus-walk trips against live arrivals and offers the bus *only* when it beats walking by a real margin and you can actually catch it. This is the thing the bus app can't do, because it doesn't know where you're going.
 
 ## Architecture
 
@@ -23,7 +24,7 @@ GT's official map stops at the building outline, and the bus app shows a route m
 Sources/
 ├── BeelineCore/          Pure Swift. No SwiftUI, no MapKit.
 │   ├── Models/           The campus data pack, decoded
-│   ├── Routing/          A* router + turn-by-turn direction generation
+│   ├── Routing/          A* router, turn-by-turn directions, walk/bus trip planning
 │   ├── Bus/              Ride Systems live client (+ a preview double)
 │   ├── Study/            LibCal availability: free-now, free-until
 │   ├── RoomDecoder       Room number → floor, wing, hint
@@ -32,7 +33,7 @@ Sources/
 │   └── Schedule          Enrolled sections → weekly events, "what's next"
 ├── BeelineUI/            SwiftUI views and the @Observable AppModel
 └── App/Beeline/          @main — ten lines
-Tests/BeelineCoreTests/   57 XCTest cases
+Tests/BeelineCoreTests/   67 XCTest cases
 ```
 
 The core has no UI dependency, so it builds and tests on a Mac with `swift test` — no simulator needed. `BeelineUI` compiles for macOS too, which keeps the whole package type-checkable from the command line.

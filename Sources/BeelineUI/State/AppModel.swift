@@ -51,6 +51,16 @@ public final class AppModel {
     // MARK: Routing
 
     public private(set) var activeRoute: ActiveRoute?
+    /// Walk vs bus options for the current destination, best first.
+    public private(set) var tripOptions: [Trip] = []
+    public private(set) var selectedTripIndex: Int = 0
+
+    public var selectedTrip: Trip? {
+        tripOptions.indices.contains(selectedTripIndex) ? tripOptions[selectedTripIndex] : nil
+    }
+
+    /// A bus option worth showing beside the walk.
+    public var busOption: Trip? { tripOptions.first { !$0.isWalkOnly } }
     public var accessibleRouting: Bool {
         didSet {
             defaults.set(accessibleRouting, forKey: Keys.accessible)
@@ -271,6 +281,8 @@ public final class AppModel {
             subtitle = [decoded.summary, decoded.hint].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " · ")
         }
 
+        planTrips(goalNodes: goalNodes, destinationName: name)
+
         activeRoute = ActiveRoute(
             destination: destination,
             title: name,
@@ -284,7 +296,30 @@ public final class AppModel {
 
     public func clearRoute() {
         activeRoute = nil
+        tripOptions = []
+        selectedTripIndex = 0
         routingError = nil
+    }
+
+    public func selectTrip(_ index: Int) {
+        guard tripOptions.indices.contains(index) else { return }
+        selectedTripIndex = index
+    }
+
+    /// Walk-or-bus options for the active destination. Computed after the
+    /// walking route so the map has something to draw immediately.
+    private func planTrips(goalNodes: [Int], destinationName: String) {
+        let from = origin ?? CLLocationCoordinate2D(latitude: 33.7743, longitude: -84.3963)
+        let planner = TripPlanner(router: router, routes: pack.bus.routes)
+        tripOptions = planner.plan(
+            fromLat: from.latitude,
+            lng: from.longitude,
+            toNodes: goalNodes,
+            destinationName: destinationName,
+            arrivals: arrivals,
+            accessible: accessibleRouting
+        )
+        selectedTripIndex = 0
     }
 
     // MARK: Classes

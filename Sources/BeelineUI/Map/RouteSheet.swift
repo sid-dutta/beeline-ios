@@ -15,11 +15,20 @@ struct RouteSheet: View {
             Divider()
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
+                    if model.busOption != nil {
+                        tripChooser
+                    }
                     if let indoor = indoorGuidance {
                         indoorCard(indoor)
                     }
-                    ForEach(active.steps) { step in
-                        StepRow(step: step, isLast: step.id == active.steps.last?.id)
+                    if let trip = model.selectedTrip, !trip.isWalkOnly {
+                        ForEach(Array(trip.legs.enumerated()), id: \.offset) { index, leg in
+                            TripLegRow(leg: leg, isLast: index == trip.legs.count - 1)
+                        }
+                    } else {
+                        ForEach(active.steps) { step in
+                            StepRow(step: step, isLast: step.id == active.steps.last?.id)
+                        }
                     }
                 }
                 .padding(.bottom, 32)
@@ -51,10 +60,13 @@ struct RouteSheet: View {
             }
 
             HStack(spacing: 14) {
-                Label("\(Int(active.route.minutes)) min", systemImage: "figure.walk")
-                    .font(.headline)
-                    .foregroundStyle(Color.beelineWalk)
-                Text(Directions.format(active.route.meters))
+                Label(
+                    "\(model.selectedTrip?.minutes ?? Int(active.route.minutes)) min",
+                    systemImage: (model.selectedTrip?.isWalkOnly ?? true) ? "figure.walk" : "bus.fill"
+                )
+                .font(.headline)
+                .foregroundStyle(Color.beelineWalk)
+                Text(Directions.format(model.selectedTrip?.walkingMeters ?? active.route.meters))
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                 if active.route.hasSteps {
@@ -74,6 +86,41 @@ struct RouteSheet: View {
         .padding(.horizontal)
         .padding(.top, 2)
         .padding(.bottom, 12)
+    }
+
+    /// Walk vs bus, with the time each takes. Only shown when a bus trip
+    /// genuinely beats walking.
+    private var tripChooser: some View {
+        HStack(spacing: 8) {
+            ForEach(Array(model.tripOptions.enumerated()), id: \.offset) { index, trip in
+                Button {
+                    model.selectTrip(index)
+                } label: {
+                    VStack(spacing: 2) {
+                        Label(
+                            trip.isWalkOnly ? "Walk" : trip.routeName ?? "Bus",
+                            systemImage: trip.isWalkOnly ? "figure.walk" : "bus.fill"
+                        )
+                        .font(.caption.weight(.medium))
+                        Text("\(trip.minutes) min")
+                            .font(.headline.monospacedDigit())
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
+                    .background(
+                        model.selectedTripIndex == index ? Color.beelineNavy.opacity(0.12) : Color.groupedBackground,
+                        in: RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            .strokeBorder(model.selectedTripIndex == index ? Color.beelineNavy : .clear, lineWidth: 1.5)
+                    )
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(.horizontal)
+        .padding(.top, 12)
     }
 
     private var subtitle: String {
@@ -201,5 +248,85 @@ struct StepRow: View {
         }
         .padding(.horizontal)
         .padding(.top, 8)
+    }
+}
+
+/// One leg of a walk-bus-walk trip.
+struct TripLegRow: View {
+    let leg: Trip.Leg
+    let isLast: Bool
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 14) {
+            VStack(spacing: 0) {
+                Image(systemName: symbol)
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(tint)
+                    .frame(width: 30, height: 30)
+                    .background(Color.groupedBackground, in: Circle())
+                if !isLast {
+                    Rectangle()
+                        .fill(Color.secondary.opacity(0.25))
+                        .frame(width: 2)
+                        .frame(maxHeight: .infinity)
+                }
+            }
+            .frame(minHeight: 46)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.subheadline)
+                if let detail {
+                    Text(detail)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .padding(.top, 5)
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal)
+        .padding(.top, 8)
+    }
+
+    private var symbol: String {
+        switch leg {
+        case .walk: "figure.walk"
+        case .wait: "clock"
+        case .ride: "bus.fill"
+        }
+    }
+
+    private var tint: Color {
+        switch leg {
+        case .walk: .secondary
+        case .wait: .orange
+        case .ride: .beelineNavy
+        }
+    }
+
+    private var title: String {
+        switch leg {
+        case .walk(_, _, _, let to): "Walk to \(to)"
+        case .wait(let seconds, let route, let stop): "Wait for the \(route) at \(stop)"
+        case .ride(_, let route, _, let alight, _, let stops, _):
+            "Ride the \(route) \(stops) stop\(stops == 1 ? "" : "s") to \(alight)"
+        }
+    }
+
+    private var detail: String? {
+        switch leg {
+        case .walk(let meters, let seconds, _, _):
+            "\(Directions.format(meters)) · \(minutes(seconds))"
+        case .wait(let seconds, _, _):
+            seconds < 60 ? "less than a minute" : minutes(seconds)
+        case .ride(_, _, let board, _, let seconds, _, _):
+            "From \(board) · \(minutes(seconds))"
+        }
+    }
+
+    private func minutes(_ seconds: TimeInterval) -> String {
+        let m = max(1, Int((seconds / 60).rounded()))
+        return "\(m) min"
     }
 }
