@@ -7,8 +7,8 @@ import BeelineCore
 struct SearchSheet: View {
     @Environment(AppModel.self) private var model
     let expand: () -> Void
-    @Binding var camera: MapCameraPosition
-    @Binding var selection: String?
+    let onSelectBuilding: (Building) -> Void
+    let onSelectPlace: (Place) -> Void
 
     @FocusState private var searchFocused: Bool
     @State private var showingStudy = false
@@ -111,7 +111,7 @@ struct SearchSheet: View {
                         .font(.headline)
                     ForEach(popularBuildings, id: \.id) { building in
                         Button {
-                            show(building)
+                            onSelectBuilding(building)
                         } label: {
                             HStack {
                                 Image(systemName: "building.2.fill")
@@ -212,7 +212,7 @@ struct SearchSheet: View {
         searchFocused = false
         switch result {
         case .building(let b):
-            show(b)
+            onSelectBuilding(b)
         case .room(let room, let building):
             model.route(to: .room(buildingID: building.id, room: room.room))
         case .course(_, _, let rooms):
@@ -220,19 +220,9 @@ struct SearchSheet: View {
                 model.route(to: .room(buildingID: building.id, room: room.room))
             }
         case .place(let p):
-            model.route(to: .place(p.id))
+            onSelectPlace(p)
         }
         model.query = ""
-    }
-
-    private func show(_ building: Building) {
-        searchFocused = false
-        selection = building.id
-        model.query = ""
-        withAnimation {
-            camera = .region(MKCoordinateRegion(center: building.center, latitudinalMeters: 320, longitudinalMeters: 320))
-        }
-        model.route(to: .building(building.id))
     }
 }
 

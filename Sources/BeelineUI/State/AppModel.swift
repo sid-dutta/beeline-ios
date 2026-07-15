@@ -147,6 +147,30 @@ public final class AppModel {
 
     public func place(_ id: String) -> Place? { pack.places.first { $0.id == id } }
 
+    /// Places filed under a building — study rooms today, more later.
+    public func places(inBuilding id: String) -> [Place] {
+        pack.places
+            .filter { $0.buildingId == id }
+            .sorted { $0.displayName < $1.displayName }
+    }
+
+    /// Everything of one kind that can actually be drawn on the map.
+    public func places(ofKind kind: String) -> [Place] {
+        pack.places.filter { $0.kind == kind && pack.coordinate(of: $0) != nil }
+    }
+
+    /// The `n` nearest places of a kind to a point.
+    public func nearestPlaces(ofKind kind: String, to point: CLLocationCoordinate2D, limit: Int = 40) -> [Place] {
+        places(ofKind: kind)
+            .compactMap { place -> (Place, Double)? in
+                guard let c = pack.coordinate(of: place) else { return nil }
+                return (place, Geo.distanceMeters(point.latitude, point.longitude, c.lat, c.lng))
+            }
+            .sorted { $0.1 < $1.1 }
+            .prefix(limit)
+            .map(\.0)
+    }
+
     public func floorPlan(for buildingID: String) -> FloorPlan? { pack.floorPlan(for: buildingID) }
 
     /// Where a room is, preferring a published floor plan over the
