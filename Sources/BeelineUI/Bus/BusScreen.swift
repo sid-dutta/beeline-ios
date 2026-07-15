@@ -53,7 +53,7 @@ struct BusScreen: View {
                 ForEach(route.stops) { stop in
                     Annotation(stop.name, coordinate: CLLocationCoordinate2D(latitude: stop.lat, longitude: stop.lng)) {
                         Circle()
-                            .fill(.white)
+                            .fill(Color.markerBody)
                             .stroke(Color(hex: route.color), lineWidth: 3)
                             .frame(width: 9, height: 9)
                     }
@@ -204,7 +204,7 @@ struct BusMarker: View {
                 .offset(y: -1)
                 .rotationEffect(.degrees(heading))
         }
-        .overlay(Circle().strokeBorder(.white, lineWidth: 2).frame(width: 22, height: 22))
+        .overlay(Circle().strokeBorder(Color.markerBody, lineWidth: 2).frame(width: 22, height: 22))
     }
 }
 

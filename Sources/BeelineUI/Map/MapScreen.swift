@@ -108,7 +108,7 @@ struct MapScreen: View {
                 if let start = active.route.coordinates.first {
                     Annotation("Start", coordinate: start.clCoordinate, anchor: .center) {
                         Circle()
-                            .fill(.white)
+                            .fill(Color.markerBody)
                             .stroke(Color.beelineRoute, lineWidth: 4)
                             .frame(width: 14, height: 14)
                     }
@@ -161,11 +161,11 @@ struct MapScreen: View {
                             .padding(.horizontal, 10)
                             .padding(.vertical, 7)
                             .background(
-                                layer == candidate ? Color.beelineNavy : Color(white: 1, opacity: 0.92),
+                                layer == candidate ? AnyShapeStyle(Color.beelineNavy) : AnyShapeStyle(.regularMaterial),
                                 in: Capsule()
                             )
-                            .foregroundStyle(layer == candidate ? .white : .primary)
-                            .shadow(color: .black.opacity(0.12), radius: 3, y: 1)
+                            .foregroundStyle(layer == candidate ? AnyShapeStyle(.white) : AnyShapeStyle(Color.primary))
+                            .shadow(color: .black.opacity(0.14), radius: 3, y: 1)
                     }
                     .buttonStyle(.plain)
                 }
@@ -292,24 +292,24 @@ struct PlacePin: View {
         VStack(spacing: 0) {
             ZStack {
                 Circle()
-                    .fill(isSelected ? Color.beelineNavy : .white)
+                    .fill(isSelected ? AnyShapeStyle(Color.beelineNavy) : AnyShapeStyle(Color.markerBody))
                     .shadow(color: .black.opacity(0.22), radius: 2, y: 1)
                 Image(systemName: layer.symbol)
                     .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(isSelected ? .white : Color.beelineNavy)
+                    .foregroundStyle(isSelected ? AnyShapeStyle(.white) : AnyShapeStyle(Color.beelineNavy))
             }
             .frame(width: 28, height: 28)
             .overlay(alignment: .topTrailing) {
                 if let isFree {
                     Circle()
                         .fill(isFree ? Color.beelineWalk : Color.secondary)
-                        .stroke(.white, lineWidth: 1.5)
+                        .stroke(Color.markerBody, lineWidth: 1.5)
                         .frame(width: 10, height: 10)
                         .offset(x: 2, y: -2)
                 }
             }
             Triangle()
-                .fill(isSelected ? Color.beelineNavy : .white)
+                .fill(isSelected ? AnyShapeStyle(Color.beelineNavy) : AnyShapeStyle(Color.markerBody))
                 .frame(width: 9, height: 6)
                 .offset(y: -1)
         }
@@ -332,7 +332,7 @@ struct DestinationPin: View {
     var body: some View {
         Image(systemName: "mappin.circle.fill")
             .font(.title)
-            .foregroundStyle(.white, Color.beelineNavy)
+            .foregroundStyle(Color.markerBody, Color.beelineNavy)
             .shadow(radius: 2, y: 1)
     }
 }

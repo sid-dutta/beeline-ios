@@ -136,9 +136,23 @@ public actor LibCalClient: StudyAvailabilityService {
     }
 
     public func availability(locationIDs: [Int], on date: Date = Date()) async throws -> [Int: Availability] {
+        // Five serial round trips took long enough that the UI showed no
+        // status at all on launch; the locations are independent, so fetch
+        // them together. One failing location must not lose the others.
+        let pages = await withTaskGroup(of: [Int: Availability].self) { group in
+            for lid in locationIDs {
+                group.addTask { [weak self] in
+                    guard let self else { return [:] }
+                    return (try? await self.grid(lid: lid, on: date)) ?? [:]
+                }
+            }
+            var collected: [[Int: Availability]] = []
+            for await page in group { collected.append(page) }
+            return collected
+        }
+
         var combined: [Int: Availability] = [:]
-        for lid in locationIDs {
-            let page = try await grid(lid: lid, on: date)
+        for page in pages {
             combined.merge(page) { existing, new in
                 Availability(spaceID: existing.spaceID, free: LibCal.merge(existing.free + new.free))
             }
