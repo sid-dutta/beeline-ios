@@ -132,6 +132,14 @@ public final class AppModel {
 
     public func place(_ id: String) -> Place? { pack.places.first { $0.id == id } }
 
+    public func floorPlan(for buildingID: String) -> FloorPlan? { pack.floorPlan(for: buildingID) }
+
+    /// Where a room is, preferring a published floor plan over the
+    /// room-number rule.
+    public func locate(room: String, in buildingID: String) -> RoomLocation {
+        pack.locate(room: room, buildingID: buildingID)
+    }
+
     public func coordinate(of destination: Destination) -> CLLocationCoordinate2D? {
         switch destination {
         case .building(let id), .room(let id, _):
@@ -204,7 +212,7 @@ public final class AppModel {
         let name = title(for: destination)
         var subtitle: String?
         if case .room(let id, let room) = destination {
-            let decoded = RoomDecoder.decode(room: room, buildingID: id)
+            let decoded = pack.locate(room: room, buildingID: id)
             subtitle = [decoded.summary, decoded.hint].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " · ")
         }
 

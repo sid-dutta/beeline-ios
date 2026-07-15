@@ -11,6 +11,17 @@ public struct RoomLocation: Hashable, Sendable {
     public var wing: String?
     /// Building-specific hint, e.g. which stairwell.
     public var hint: String?
+    /// True when the floor came from a published plan rather than the
+    /// room-number rule — the UI says so, because the confidence differs.
+    public var isFromFloorPlan: Bool = false
+
+    public init(floor: Int?, floorLabel: String, wing: String?, hint: String?, isFromFloorPlan: Bool = false) {
+        self.floor = floor
+        self.floorLabel = floorLabel
+        self.wing = wing
+        self.hint = hint
+        self.isFromFloorPlan = isFromFloorPlan
+    }
 
     public var summary: String {
         [floorLabel, wing].compactMap { $0 }.joined(separator: " · ")

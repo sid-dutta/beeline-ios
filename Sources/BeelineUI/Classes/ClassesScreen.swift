@@ -150,7 +150,7 @@ struct ClassRow: View {
                 Text(event.location)
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                Text(RoomDecoder.decode(room: event.room, buildingID: event.buildingID).summary)
+                Text(model.locate(room: event.room, in: event.buildingID).summary)
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
             }

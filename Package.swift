@@ -13,7 +13,10 @@ let package = Package(
         .library(name: "BeelineUI", targets: ["BeelineUI"]),
     ],
     targets: [
-        .target(name: "BeelineCore", resources: [.copy("Resources/campus.json")]),
+        .target(
+            name: "BeelineCore",
+            resources: [.copy("Resources/campus.json"), .copy("Resources/floorplans")]
+        ),
         .target(name: "BeelineUI", dependencies: ["BeelineCore"]),
         .testTarget(name: "BeelineCoreTests", dependencies: ["BeelineCore"]),
     ],

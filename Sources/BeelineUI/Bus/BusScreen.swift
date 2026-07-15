@@ -84,6 +84,7 @@ struct BusScreen: View {
     // MARK: Route picker
 
     private var routePicker: some View {
+        ScrollViewReader { proxy in
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
                 ForEach(routes) { route in
@@ -118,10 +119,20 @@ struct BusScreen: View {
                         )
                     }
                     .buttonStyle(.plain)
+                    .id(route.id)
                 }
             }
             .padding(.horizontal)
             .padding(.vertical, 10)
+        }
+        // Keep the selected route visible; it is rarely first alphabetically.
+        .onChange(of: selectedRoute) { _, id in
+            guard let id else { return }
+            withAnimation { proxy.scrollTo(id, anchor: .center) }
+        }
+        .task {
+            if let id = selectedRoute { proxy.scrollTo(id, anchor: .center) }
+        }
         }
     }
 

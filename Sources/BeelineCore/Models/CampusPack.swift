@@ -162,6 +162,7 @@ public struct CampusPack: Codable, Sendable {
     public var rooms: [Room]
     public var graph: Graph
     public var bus: BusData
+    public var floorplans: [FloorPlan]
 
     /// An empty pack, so the app can render a blank map instead of crashing
     /// if the bundled resource is ever missing.
@@ -173,7 +174,8 @@ public struct CampusPack: Codable, Sendable {
         places: [],
         rooms: [],
         graph: Graph(nodes: [], edges: []),
-        bus: BusData(routes: [])
+        bus: BusData(routes: []),
+        floorplans: []
     )
 
     public init(
@@ -184,7 +186,8 @@ public struct CampusPack: Codable, Sendable {
         places: [Place],
         rooms: [Room],
         graph: Graph,
-        bus: BusData
+        bus: BusData,
+        floorplans: [FloorPlan] = []
     ) {
         self.packVersion = packVersion
         self.generatedAt = generatedAt
@@ -194,6 +197,21 @@ public struct CampusPack: Codable, Sendable {
         self.rooms = rooms
         self.graph = graph
         self.bus = bus
+        self.floorplans = floorplans
+    }
+
+    // Older packs predate floor plans.
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        packVersion = try c.decode(Int.self, forKey: .packVersion)
+        generatedAt = try c.decode(String.self, forKey: .generatedAt)
+        term = try c.decode(String.self, forKey: .term)
+        buildings = try c.decode([Building].self, forKey: .buildings)
+        places = try c.decode([Place].self, forKey: .places)
+        rooms = try c.decode([Room].self, forKey: .rooms)
+        graph = try c.decode(Graph.self, forKey: .graph)
+        bus = try c.decode(BusData.self, forKey: .bus)
+        floorplans = try c.decodeIfPresent([FloorPlan].self, forKey: .floorplans) ?? []
     }
 
     public static func decode(_ data: Data) throws -> CampusPack {

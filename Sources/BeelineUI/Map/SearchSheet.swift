@@ -6,7 +6,7 @@ import BeelineCore
 /// quick categories. Everything here answers "where am I going?".
 struct SearchSheet: View {
     @Environment(AppModel.self) private var model
-    @Binding var detent: PresentationDetent
+    let expand: () -> Void
     @Binding var camera: MapCameraPosition
     @Binding var selection: String?
 
@@ -36,9 +36,9 @@ struct SearchSheet: View {
             .padding(10)
             .background(Color.groupedBackground, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
             .padding(.horizontal)
-            .padding(.top, 8)
+            .padding(.top, 2)
             .onChange(of: searchFocused) { _, focused in
-                if focused { detent = .large }
+                if focused { expand() }
             }
 
             if model.query.isEmpty {
@@ -70,7 +70,7 @@ struct SearchSheet: View {
                             ForEach(Category.allCases) { category in
                                 Button {
                                     model.query = category.query
-                                    detent = .large
+                                    expand()
                                 } label: {
                                     Label(category.title, systemImage: category.symbol)
                                         .font(.subheadline)
@@ -208,7 +208,6 @@ struct SearchSheet: View {
         searchFocused = false
         selection = building.id
         model.query = ""
-        detent = .height(150)
         withAnimation {
             camera = .region(MKCoordinateRegion(center: building.center, latitudinalMeters: 320, longitudinalMeters: 320))
         }

@@ -12,7 +12,7 @@ GT's official map stops at the building outline, and the bus app shows a route m
 
 - **Search anything** — `Klaus 1443`, `CS 1332`, "Clough", "food", "restrooms". One field, ranked results across 380 buildings, 333 rooms, 45 teaching buildings and 183 places.
 - **Walk you there** — A* over a 12,400-node campus path graph built from OpenStreetMap footways. It picks the closest usable entrance, prefers paths over roads, and can avoid stairs entirely.
-- **Tell you where the room is** — floor and wing decoded from the room number, with per-building rules for the ones that break convention (Howey's `L3` lecture halls, Klaus's atrium halls, College of Computing's two-digit rooms).
+- **Tell you where the room is** — for Clough, the actual published floor plan with your room ringed on it and a floor picker down the side. Everywhere else, floor and wing decoded from the room number, with per-building rules for the ones that break convention (Howey's `L3` lecture halls, Klaus's atrium halls, College of Computing's two-digit rooms). The app says which of the two it's showing, because the confidence differs.
 - **Know your schedule** — add your sections and the map opens on "next class, 6 min walk, leave by 1:24".
 - **Show the buses** — all nine Stinger routes with live vehicle positions and per-stop arrival estimates on the same screen.
 
@@ -25,11 +25,12 @@ Sources/
 │   ├── Routing/          A* router + turn-by-turn direction generation
 │   ├── Bus/              Ride Systems live client (+ a preview double)
 │   ├── RoomDecoder       Room number → floor, wing, hint
+│   ├── FloorPlan         Published plans: page image + room positions
 │   ├── Search            One index over buildings, rooms, courses, places
 │   └── Schedule          Enrolled sections → weekly events, "what's next"
 ├── BeelineUI/            SwiftUI views and the @Observable AppModel
 └── App/Beeline/          @main — ten lines
-Tests/BeelineCoreTests/   33 XCTest cases
+Tests/BeelineCoreTests/   43 XCTest cases
 ```
 
 The core has no UI dependency, so it builds and tests on a Mac with `swift test` — no simulator needed. `BeelineUI` compiles for macOS too, which keeps the whole package type-checkable from the command line.
@@ -52,9 +53,11 @@ open Beeline.xcodeproj
 
 ## Status
 
-Working: search, outdoor routing with turn-by-turn, room decoding, class schedule, live buses.
+Working: search, outdoor routing with turn-by-turn, room decoding, Clough floor plans, class schedule, live buses.
 
-Next: hand-traced indoor floor graphs, starting with Clough, Klaus and Skiles — together those three host 31.5% of all scheduled class meetings. There is no indoor positioning at Georgia Tech, so indoor guidance is designed as instructions ("enter here → these stairs → 2nd floor → west wing"), not a moving dot.
+Clough is the only building at Georgia Tech that publishes floor plans. Its five pages are parsed for room positions in the pipeline and shipped as images — 81% of Clough's scheduled class meetings land on an exact spot on a real plan; the rest still get the right floor.
+
+Next: hand-traced indoor graphs for buildings with no published plan, starting with Klaus and Skiles. There is no indoor positioning at Georgia Tech, so indoor guidance is designed as instructions ("enter here → these stairs → 2nd floor → west wing"), not a moving dot.
 
 ## License
 

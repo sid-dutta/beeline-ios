@@ -6,7 +6,8 @@ import BeelineCore
 struct RouteSheet: View {
     @Environment(AppModel.self) private var model
     let active: AppModel.ActiveRoute
-    @Binding var detent: PresentationDetent
+    let expand: () -> Void
+    @State private var showingPlan = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -71,7 +72,7 @@ struct RouteSheet: View {
             }
         }
         .padding(.horizontal)
-        .padding(.top, 10)
+        .padding(.top, 2)
         .padding(.bottom, 12)
     }
 
@@ -85,15 +86,29 @@ struct RouteSheet: View {
 
     private var indoorGuidance: RoomLocation? {
         guard case .room(let buildingID, let room) = active.destination else { return nil }
-        let decoded = RoomDecoder.decode(room: room, buildingID: buildingID)
-        return decoded.floor == nil && decoded.hint == nil ? nil : decoded
+        let located = model.locate(room: room, in: buildingID)
+        return located.floor == nil && located.hint == nil ? nil : located
+    }
+
+    private var floorPlan: (plan: FloorPlan, room: String, name: String)? {
+        guard case .room(let buildingID, let room) = active.destination,
+              let plan = model.floorPlan(for: buildingID) else { return nil }
+        return (plan, room, model.building(buildingID)?.shortName ?? active.title)
     }
 
     private func indoorCard(_ location: RoomLocation) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Label("Once inside", systemImage: "arrow.up.forward.square")
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(Color.beelineGold)
+            HStack(spacing: 6) {
+                Label("Once inside", systemImage: "arrow.up.forward.square")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(Color.beelineGold)
+                if location.isFromFloorPlan {
+                    Text("FROM FLOOR PLAN")
+                        .font(.system(size: 9, weight: .bold))
+                        .tracking(0.4)
+                        .foregroundStyle(.secondary)
+                }
+            }
             HStack(spacing: 10) {
                 if let floor = location.floor {
                     FloorBadge(floor: floor)
@@ -109,9 +124,23 @@ struct RouteSheet: View {
                 }
                 Spacer()
             }
-            Text("Floor plans for this building aren't mapped yet — this comes from the room number.")
-                .font(.caption2)
-                .foregroundStyle(.tertiary)
+            if let fp = floorPlan {
+                Button {
+                    showingPlan = true
+                } label: {
+                    Label("View floor plan", systemImage: "map")
+                        .font(.subheadline.weight(.medium))
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .sheet(isPresented: $showingPlan) {
+                    FloorPlanView(plan: fp.plan, buildingName: fp.name, highlight: fp.room)
+                }
+            } else {
+                Text("Floor plans for this building aren't published — this comes from the room number.")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+            }
         }
         .card(padding: 14)
         .padding(.horizontal)

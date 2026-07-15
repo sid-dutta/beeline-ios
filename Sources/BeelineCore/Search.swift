@@ -31,7 +31,7 @@ public enum SearchResult: Identifiable, Hashable, Sendable {
     public var subtitle: String {
         switch self {
         case .building(let b): b.kind ?? "Building"
-        case .room(let r, let b): RoomDecoder.decode(room: r.room, buildingID: b.id).summary
+        case .room(let r, let b): RoomDecoder.decode(room: r.room, buildingID: b.id).summary  // plan-aware version is used in detail views
         case .course(_, _, let rooms): rooms.map { "\($0.1.shortName) \($0.0.room)" }.joined(separator: ", ")
         case .place(let p): p.kind.capitalized
         }
