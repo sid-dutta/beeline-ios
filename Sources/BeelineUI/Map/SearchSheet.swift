@@ -2,8 +2,6 @@ import MapKit
 import SwiftUI
 import BeelineCore
 
-/// The idle state of the map sheet: a search field, the next class, and
-/// quick categories. Everything here answers "where am I going?".
 struct SearchSheet: View {
     @Environment(AppModel.self) private var model
     let expand: () -> Void
@@ -55,8 +53,6 @@ struct SearchSheet: View {
             }
         }
     }
-
-    // MARK: Idle
 
     private var idleContent: some View {
         ScrollView {
@@ -149,8 +145,6 @@ struct SearchSheet: View {
             .compactMap { model.building($0.key) }
     }
 
-    // MARK: Results
-
     private var resultsList: some View {
         List(model.results) { result in
             Button {
@@ -205,8 +199,6 @@ struct SearchSheet: View {
         case .place: .gray
         }
     }
-
-    // MARK: Actions
 
     private func select(_ result: SearchResult) {
         searchFocused = false

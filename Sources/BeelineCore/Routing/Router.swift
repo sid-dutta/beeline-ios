@@ -1,17 +1,13 @@
 import Foundation
 
-/// A* over the campus walking graph. Built once from the pack; routing a
-/// few thousand nodes takes single-digit milliseconds.
 public final class Router: Sendable {
     public struct Route: Sendable, Equatable {
         public var nodeIDs: [Int]
         public var coordinates: [Coordinate]
         public var meters: Double
         public var hasSteps: Bool
-        /// Meters of the route that run along roads rather than paths.
         public var roadMeters: Double
 
-        /// Campus walking pace ~1.35 m/s, rounded up to the next half minute.
         public var minutes: Double {
             (meters / 1.35 / 60 * 2).rounded(.up) / 2
         }
@@ -43,11 +39,9 @@ public final class Router: Sendable {
         Coordinate(lat: nodes[node].lat, lng: nodes[node].lng)
     }
 
-    /// Nearest graph node to a point, or nil if nothing is within `maxMeters`.
     public func nearestNode(lat: Double, lng: Double, maxMeters: Double = 120) -> Int? {
         var best: (Int, Double)?
         for n in nodes {
-            // Cheap rejection before the trig.
             if abs(n.lat - lat) > 0.002 || abs(n.lng - lng) > 0.002 { continue }
             let d = Geo.distanceMeters(lat, lng, n.lat, n.lng)
             if d <= maxMeters, best == nil || d < best!.1 { best = (n.id, d) }
@@ -113,8 +107,6 @@ public final class Router: Sendable {
         )
     }
 
-    /// Best route from any of `starts` to any of `goals` — how "walk me to
-    /// this building" picks the door.
     public func route(fromAny starts: [Int], toAny goals: [Int], accessible: Bool = false) -> (route: Route, start: Int, goal: Int)? {
         var best: (Route, Int, Int)?
         for s in starts {
@@ -128,7 +120,6 @@ public final class Router: Sendable {
     }
 }
 
-/// Minimal binary min-heap keyed on Double priority.
 struct BinaryHeap {
     private var items: [(node: Int, priority: Double)] = []
 

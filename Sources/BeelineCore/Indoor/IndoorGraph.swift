@@ -1,16 +1,9 @@
 import Foundation
 
-/// A hand-traced indoor graph, matching the format `beeline-api` produces.
-///
-/// Positions are 0–1 across whatever image was traced, so a graph survives
-/// the image being re-rendered, and a floor with no image still routes — it
-/// just can't be drawn.
-
 public struct IndoorNode: Codable, Hashable, Sendable, Identifiable {
     public enum Kind: String, Codable, Sendable {
         case corridor, door, room, stairs, elevator, entrance, restroom
 
-        /// Kinds that carry you between floors.
         public var isVertical: Bool { self == .stairs || self == .elevator }
     }
 
@@ -35,8 +28,6 @@ public struct IndoorNode: Codable, Hashable, Sendable, Identifiable {
         self.accessible = accessible
     }
 
-    // A graph traced against an older build may use a kind we don't know;
-    // treat it as a plain corridor rather than failing the whole file.
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         id = try c.decode(String.self, forKey: .id)
@@ -78,8 +69,6 @@ public struct IndoorFloor: Codable, Hashable, Sendable, Identifiable {
 public struct IndoorGraph: Codable, Hashable, Sendable, Identifiable {
     public var buildingId: String
     public var floors: [IndoorFloor]
-    /// `[fromLevel, fromNode, toLevel, toNode]` — the same stairwell or lift
-    /// seen on two floors. Stored as strings so the JSON stays simple.
     public var links: [[LinkComponent]]
     public var source: String
 
@@ -94,7 +83,6 @@ public struct IndoorGraph: Codable, Hashable, Sendable, Identifiable {
 
     public func floor(level: Int) -> IndoorFloor? { floors.first { $0.level == level } }
 
-    /// The floor a room is on, straight from the traced graph.
     public func floor(forRoom room: String) -> IndoorFloor? {
         floors.first { $0.room(room) != nil }
     }
@@ -103,7 +91,6 @@ public struct IndoorGraph: Codable, Hashable, Sendable, Identifiable {
         floors.flatMap { $0.nodes.compactMap(\.room) }.sorted()
     }
 
-    /// Vertical links as typed pairs.
     public var connections: [(from: NodeRef, to: NodeRef)] {
         links.compactMap { link in
             guard link.count == 4,
@@ -115,7 +102,6 @@ public struct IndoorGraph: Codable, Hashable, Sendable, Identifiable {
         }
     }
 
-    // `links` and `source` are optional in the file format.
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         buildingId = try c.decode(String.self, forKey: .buildingId)
@@ -131,7 +117,6 @@ public struct IndoorGraph: Codable, Hashable, Sendable, Identifiable {
     }
 }
 
-/// A node on a particular floor.
 public struct NodeRef: Hashable, Sendable {
     public var level: Int
     public var id: String
@@ -142,8 +127,6 @@ public struct NodeRef: Hashable, Sendable {
     }
 }
 
-/// A link entry holds an Int level and a String node id in one array, so it
-/// decodes as either.
 public enum LinkComponent: Codable, Hashable, Sendable {
     case int(Int)
     case string(String)

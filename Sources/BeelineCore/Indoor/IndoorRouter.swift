@@ -1,25 +1,13 @@
 import Foundation
 
-/// Routing inside a building, across floors.
-///
-/// There is no indoor positioning at Georgia Tech, so this never pretends to
-/// know where you are — it answers "from this door, how do I reach that
-/// room", which is what a person asks anyway.
-///
-/// Distances are in traced-image units (0–1 across a floor), not metres. They
-/// order candidate paths correctly, which is all a router needs; nothing here
-/// reports an indoor distance or time, because we'd be making it up.
 public struct IndoorRouter: Sendable {
 
-    /// Crossing one floor costs about this much horizontally, so a floor
-    /// change is priced as a little more than half a floor's walk.
+    // Costs are in traced-image units (0-1 across a floor), not meters.
     public static let stairsCost = 0.6
-    /// A lift is slower to arrive but easier; roughly the same, slightly worse.
     public static let elevatorCost = 0.75
 
     public struct Path: Sendable, Equatable {
         public var nodes: [NodeRef]
-        /// Cost in traced-image units. Comparable, not meaningful in metres.
         public var cost: Double
         public var usesStairs: Bool
         public var usesElevator: Bool
@@ -46,7 +34,6 @@ public struct IndoorRouter: Sendable {
         }
         self.nodesByRef = nodes
 
-        // (neighbour, cost, isVerticalMove)
         var adjacency: [NodeRef: [(NodeRef, Double, Bool)]] = [:]
         for floor in graph.floors {
             for edge in floor.edges where edge.count == 2 {
@@ -69,7 +56,6 @@ public struct IndoorRouter: Sendable {
 
     public func node(_ ref: NodeRef) -> IndoorNode? { nodesByRef[ref] }
 
-    /// Every entrance in the building, as start points.
     public var entrances: [NodeRef] {
         graph.floors.flatMap { floor in
             floor.nodes.filter { $0.kind == .entrance }.map { NodeRef(level: floor.level, id: $0.id) }
@@ -83,8 +69,6 @@ public struct IndoorRouter: Sendable {
         return nil
     }
 
-    /// Shortest path between two nodes. `accessible` refuses stairs and any
-    /// node marked not step-free.
     public func path(from start: NodeRef, to goal: NodeRef, accessible: Bool = false) -> Path? {
         guard nodesByRef[start] != nil, nodesByRef[goal] != nil else { return nil }
         if start == goal {
@@ -94,7 +78,6 @@ public struct IndoorRouter: Sendable {
         var best: [NodeRef: Double] = [start: 0]
         var cameFrom: [NodeRef: NodeRef] = [:]
         var visited: Set<NodeRef> = []
-        // The graphs are small — tens of nodes — so a simple queue is plenty.
         var frontier: [(NodeRef, Double)] = [(start, 0)]
 
         while !frontier.isEmpty {
@@ -134,8 +117,6 @@ public struct IndoorRouter: Sendable {
         )
     }
 
-    /// From whichever entrance reaches the room most easily — how someone
-    /// actually arrives at a building.
     public func pathToRoom(_ number: String, accessible: Bool = false) -> Path? {
         guard let goal = roomRef(number) else { return nil }
         return entrances

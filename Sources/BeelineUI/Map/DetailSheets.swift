@@ -1,9 +1,6 @@
 import SwiftUI
 import BeelineCore
 
-/// What's in a building: its rooms with classes, its doors, and the places
-/// inside it. Shown before routing, because "is this the right building?" is
-/// the question people actually have.
 struct BuildingSheet: View {
     @Environment(AppModel.self) private var model
     let building: Building
@@ -153,7 +150,6 @@ struct BuildingSheet: View {
     }
 }
 
-/// A single point of interest — a restroom, a café, a bus stop, a study room.
 struct PlaceSheet: View {
     @Environment(AppModel.self) private var model
     @Environment(\.openURL) private var openURL
@@ -243,8 +239,6 @@ struct PlaceSheet: View {
         }
     }
 }
-
-// MARK: - Small shared pieces
 
 struct CloseButton: View {
     let action: () -> Void

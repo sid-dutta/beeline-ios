@@ -1,24 +1,17 @@
 import Foundation
 
-// Live Stinger data from the Ride Systems relay that powers bus.gatech.edu.
-// Route geometry and stops already ship in the pack; this is only the moving
-// parts. Every call is best-effort: buses stop running at night and the feed
-// simply returns an empty array, which is not an error.
-
 public struct Vehicle: Identifiable, Hashable, Sendable {
     public var id: Int
     public var name: String
     public var routeID: Int
     public var lat: Double
     public var lng: Double
-    /// Degrees clockwise from north.
     public var heading: Double
     public var speedMPH: Double
     public var onRoute: Bool
     public var isDelayed: Bool
     public var reportedAt: Date?
 
-    /// A fix older than this is stale enough to hide rather than mislead.
     public func isStale(now: Date = Date(), tolerance: TimeInterval = 180) -> Bool {
         guard let reportedAt else { return false }
         return now.timeIntervalSince(reportedAt) > tolerance
@@ -45,22 +38,16 @@ public struct StopArrival: Identifiable, Hashable, Sendable {
     }
 }
 
-// MARK: - Wire decoding
-
-/// The relay speaks .NET JSON: numbers arrive as strings sometimes, and dates
-/// look like `/Date(1788400000000-0400)/`.
 enum RideSystems {
 
     static func date(from raw: String?) -> Date? {
         guard let raw, let open = raw.firstIndex(of: "("), let close = raw.firstIndex(of: ")") else { return nil }
         let inner = raw[raw.index(after: open)..<close]
-        // Strip a trailing timezone offset; the milliseconds are already UTC.
         let millisPart = inner.prefix { $0.isNumber || $0 == "-" && inner.first == $0 }
         guard let millis = Double(millisPart) else { return nil }
         return Date(timeIntervalSince1970: millis / 1000)
     }
 
-    /// Reads a value that may be a number or a numeric string.
     static func number(_ value: Any?) -> Double? {
         switch value {
         case let d as Double: d
@@ -126,8 +113,6 @@ enum RideSystems {
     }
 }
 
-// MARK: - Client
-
 public protocol BusService: Sendable {
     func vehicles() async throws -> [Vehicle]
     func arrivals() async throws -> [StopArrival]
@@ -177,7 +162,6 @@ public actor RideSystemsClient: BusService {
     }
 }
 
-/// Deterministic buses for previews and the simulator.
 public struct PreviewBusService: BusService {
     public init() {}
 

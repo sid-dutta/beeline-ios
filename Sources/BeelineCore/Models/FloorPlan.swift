@@ -1,10 +1,5 @@
 import Foundation
 
-/// A published floor plan: a page image plus the room labels on it, with
-/// positions normalized 0–1 from the left and from the top of the image.
-/// A room with no position is known to be on this floor but couldn't be
-/// pinpointed — the app shows the plan without a marker rather than guess.
-
 public struct PlanRoom: Codable, Hashable, Sendable, Identifiable {
     public var room: String
     public var x: Double?
@@ -32,7 +27,6 @@ public struct Floor: Codable, Hashable, Sendable, Identifiable {
         rooms.first { $0.room.caseInsensitiveCompare(number) == .orderedSame }
     }
 
-    /// The image, loaded from the package bundle.
     public var imageURL: URL? {
         let name = (image as NSString).deletingPathExtension
         let ext = (image as NSString).pathExtension
@@ -52,15 +46,12 @@ public struct FloorPlan: Codable, Hashable, Sendable, Identifiable {
         floors.first { $0.level == level }
     }
 
-    /// The floor a room is on according to the plan itself — authoritative,
-    /// unlike the room-number rule.
     public func floor(forRoom room: String) -> Floor? {
         floors.first { $0.room(room) != nil }
     }
 }
 
 public extension CampusPack {
-    /// A place's position: its own point, or the building that contains it.
     func coordinate(of place: Place) -> Coordinate? {
         if let lat = place.lat, let lng = place.lng {
             return Coordinate(lat: lat, lng: lng)
@@ -74,7 +65,6 @@ public extension CampusPack {
         floorplans.first { $0.buildingId == buildingID }
     }
 
-    /// Where a plan exists it wins; otherwise fall back to the room-number rule.
     func locate(room: String, buildingID: String) -> RoomLocation {
         if let plan = floorPlan(for: buildingID), let floor = plan.floor(forRoom: room) {
             let decoded = RoomDecoder.decode(room: room, buildingID: buildingID)

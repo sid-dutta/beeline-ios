@@ -2,14 +2,11 @@ import CoreLocation
 import Foundation
 import Observation
 
-/// Thin wrapper over CoreLocation. Beeline works fine without location — it
-/// just can't route "from here" — so nothing blocks on authorization.
 @MainActor
 @Observable
 public final class LocationProvider: NSObject {
     public private(set) var coordinate: CLLocationCoordinate2D?
     public private(set) var authorization: CLAuthorizationStatus
-    /// Heading in degrees, for orienting the walking arrow.
     public private(set) var heading: Double?
 
     private let manager = CLLocationManager()
@@ -77,6 +74,5 @@ extension LocationProvider: CLLocationManagerDelegate {
     #endif
 
     nonisolated public func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
-        // A transient failure just means no fix yet; the UI already handles nil.
     }
 }

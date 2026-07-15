@@ -2,9 +2,6 @@ import MapKit
 import SwiftUI
 import BeelineCore
 
-/// Map with a draggable panel over it. The panel is an overlay rather than a
-/// system sheet so it never covers the tab bar — a sheet at any detent would
-/// make the other tabs unreachable.
 struct MapScreen: View {
     @Environment(AppModel.self) private var model
     @Environment(LocationProvider.self) private var location
@@ -56,8 +53,6 @@ struct MapScreen: View {
         }
     }
 
-    // MARK: Map
-
     private var visiblePlaces: [Place] {
         guard let layer else { return [] }
         let centre = model.origin ?? Self.campus.center
@@ -83,8 +78,6 @@ struct MapScreen: View {
             }
 
             if let active = model.activeRoute {
-                // A bus trip draws its own walk-ride-walk path; a walking
-                // route draws the footpath.
                 if let trip = model.selectedTrip, !trip.isWalkOnly {
                     ForEach(Array(trip.legs.enumerated()), id: \.offset) { _, leg in
                         switch leg {
@@ -144,8 +137,6 @@ struct MapScreen: View {
         }
     }
 
-    // MARK: Layer bar
-
     private var layerBar: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 6) {
@@ -175,8 +166,6 @@ struct MapScreen: View {
         }
         .scrollClipDisabled()
     }
-
-    // MARK: Panel
 
     private var panelContent: some View {
         VStack(spacing: 0) {
@@ -238,8 +227,6 @@ struct MapScreen: View {
             .accessibilityLabel(panel == .peek ? "Expand panel" : "Collapse panel")
     }
 
-    // MARK: Actions
-
     private func show(building: Building) {
         model.clearRoute()
         state = .building(building.id)
@@ -281,8 +268,6 @@ struct MapScreen: View {
     }
 }
 
-/// A category pin. Study rooms carry a free/busy dot, because that is the
-/// only thing you want to know at a glance.
 struct PlacePin: View {
     let layer: PlaceLayer
     var isSelected: Bool = false

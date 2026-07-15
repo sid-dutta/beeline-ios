@@ -3,8 +3,6 @@ import MapKit
 import Observation
 import BeelineCore
 
-/// Everything the UI reads. The pack, router and search index are built once
-/// at launch; routes and bus data are recomputed on demand.
 @MainActor
 @Observable
 public final class AppModel {
@@ -33,25 +31,18 @@ public final class AppModel {
         public var startedFromLocation: Bool
     }
 
-    // MARK: Data
-
     public let pack: CampusPack
     public let router: Router
     public let index: SearchIndex
 
     public private(set) var loadError: String?
 
-    // MARK: Search
-
     public var query: String = "" {
         didSet { results = query.isEmpty ? [] : index.search(query) }
     }
     public private(set) var results: [SearchResult] = []
 
-    // MARK: Routing
-
     public private(set) var activeRoute: ActiveRoute?
-    /// Walk vs bus options for the current destination, best first.
     public private(set) var tripOptions: [Trip] = []
     public private(set) var selectedTripIndex: Int = 0
 
@@ -59,7 +50,6 @@ public final class AppModel {
         tripOptions.indices.contains(selectedTripIndex) ? tripOptions[selectedTripIndex] : nil
     }
 
-    /// A bus option worth showing beside the walk.
     public var busOption: Trip? { tripOptions.first { !$0.isWalkOnly } }
     public var accessibleRouting: Bool {
         didSet {
@@ -68,8 +58,6 @@ public final class AppModel {
         }
     }
     public private(set) var routingError: String?
-
-    // MARK: Classes
 
     public private(set) var enrolled: [EnrolledSection] {
         didSet {
@@ -81,15 +69,11 @@ public final class AppModel {
     }
     public private(set) var schedule: Schedule
 
-    // MARK: Bus
-
     public private(set) var vehicles: [Vehicle] = []
     public private(set) var arrivals: [StopArrival] = []
     public private(set) var busUpdatedAt: Date?
     public private(set) var busError: String?
     public private(set) var isRefreshingBus = false
-
-    // MARK: Study spaces
 
     public private(set) var studyAvailability: [Int: Availability] = [:]
     public private(set) var studyUpdatedAt: Date?
@@ -105,8 +89,6 @@ public final class AppModel {
         static let enrolled = "beeline.enrolled"
         static let accessible = "beeline.accessibleRouting"
     }
-
-    // MARK: Init
 
     public init(
         pack: CampusPack,
@@ -127,13 +109,10 @@ public final class AppModel {
         self.schedule = Schedule(sections: saved, pack: pack)
     }
 
-    /// Production: the pack from the bundle, live buses.
     public static func live() -> AppModel {
         do {
             return AppModel(pack: try CampusPack.bundled(), bus: RideSystemsClient(), study: LibCalClient())
         } catch {
-            // A pack that won't load is a build error, not a runtime state the
-            // user can fix — but crashing on launch is worse than an empty map.
             let model = AppModel(pack: .empty, bus: PreviewBusService(), study: PreviewStudyService())
             model.loadError = error.localizedDescription
             return model
@@ -149,27 +128,22 @@ public final class AppModel {
         )
     }
 
-    // MARK: Lookup
-
     public func building(_ id: String) -> Building? { index.building(id: id) }
 
     public func rooms(in buildingID: String) -> [Room] { index.rooms(in: buildingID) }
 
     public func place(_ id: String) -> Place? { pack.places.first { $0.id == id } }
 
-    /// Places filed under a building — study rooms today, more later.
     public func places(inBuilding id: String) -> [Place] {
         pack.places
             .filter { $0.buildingId == id }
             .sorted { $0.displayName < $1.displayName }
     }
 
-    /// Everything of one kind that can actually be drawn on the map.
     public func places(ofKind kind: String) -> [Place] {
         pack.places.filter { $0.kind == kind && pack.coordinate(of: $0) != nil }
     }
 
-    /// The `n` nearest places of a kind to a point.
     public func nearestPlaces(ofKind kind: String, to point: CLLocationCoordinate2D, limit: Int = 40) -> [Place] {
         places(ofKind: kind)
             .compactMap { place -> (Place, Double)? in
@@ -183,8 +157,6 @@ public final class AppModel {
 
     public func floorPlan(for buildingID: String) -> FloorPlan? { pack.floorPlan(for: buildingID) }
 
-    /// Where a room is, preferring a published floor plan over the
-    /// room-number rule.
     public func locate(room: String, in buildingID: String) -> RoomLocation {
         pack.locate(room: room, buildingID: buildingID)
     }
@@ -208,10 +180,6 @@ public final class AppModel {
         }
     }
 
-    // MARK: Routing
-
-    /// Current location if we have one, otherwise the middle of campus so the
-    /// app is still useful indoors or in the simulator.
     public var origin: CLLocationCoordinate2D?
 
     public func route(to destination: Destination) {
@@ -231,8 +199,6 @@ public final class AppModel {
             }
             goalNodes = entranceCandidates.compactMap(\.node)
         case .place(let id):
-            // A bookable study room has no point of its own — route to the
-            // building that holds it, and pick its door like any other.
             guard let p = place(id) else {
                 routingError = "That place isn't in the map data."
                 return
@@ -306,8 +272,6 @@ public final class AppModel {
         selectedTripIndex = index
     }
 
-    /// Walk-or-bus options for the active destination. Computed after the
-    /// walking route so the map has something to draw immediately.
     private func planTrips(goalNodes: [Int], destinationName: String) {
         let from = origin ?? CLLocationCoordinate2D(latitude: 33.7743, longitude: -84.3963)
         let planner = TripPlanner(router: router, routes: pack.bus.routes)
@@ -322,8 +286,6 @@ public final class AppModel {
         selectedTripIndex = 0
     }
 
-    // MARK: Classes
-
     public func enroll(course: String, section: String) {
         let s = EnrolledSection(course: course, section: section)
         guard !enrolled.contains(s) else { return }
@@ -336,7 +298,6 @@ public final class AppModel {
 
     public var isEnrolledEmpty: Bool { enrolled.isEmpty }
 
-    /// Sections available for a course, for the "add class" picker.
     public func sections(forCourse course: String) -> [(section: String, meeting: Meeting, buildingID: String, room: String)] {
         var out: [(String, Meeting, String, String)] = []
         for room in pack.rooms {
@@ -349,7 +310,6 @@ public final class AppModel {
         return out.sorted { $0.0 < $1.0 }.map { (section: $0.0, meeting: $0.1, buildingID: $0.2, room: $0.3) }
     }
 
-    /// Next class plus how long the walk there takes right now.
     public func nextClass() -> (event: ClassEvent, minutesUntil: Int, walkMinutes: Double?)? {
         guard let next = schedule.next() else { return nil }
         let walk = walkMinutes(toBuilding: next.event.buildingID)
@@ -365,8 +325,6 @@ public final class AppModel {
               let result = router.route(fromAny: [start], toAny: goals, accessible: accessibleRouting) else { return nil }
         return result.route.minutes
     }
-
-    // MARK: Bus
 
     public func startBusUpdates() {
         guard busTimer == nil else { return }
@@ -402,9 +360,6 @@ public final class AppModel {
 
     public func route(_ id: Int) -> BusRoute? { pack.bus.routes.first { $0.id == id } }
 
-    // MARK: Study spaces
-
-    /// Bookable rooms, free ones first, then by building and name.
     public var studySpaces: [Place] {
         pack.places
             .filter { $0.kind == "study" && $0.isBookable }
@@ -450,12 +405,10 @@ public final class AppModel {
         arrivals.first { $0.routeID == routeID && $0.routeStopID == stopID }
     }
 
-    /// Are any buses running at all right now?
     public var isServiceActive: Bool { !vehicles.isEmpty }
 }
 
 extension Entrance {
-    /// "the main entrance", "the west door", "the accessible entrance"
     var doorDescription: String {
         if let name, !name.isEmpty, name != "Nearest path" { return name }
         if main { return "the main entrance" }

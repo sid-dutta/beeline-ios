@@ -1,8 +1,6 @@
 import SwiftUI
 import BeelineCore
 
-/// The active-route state of the map sheet: headline ETA, the room's floor
-/// and wing, then the step list.
 struct RouteSheet: View {
     @Environment(AppModel.self) private var model
     let active: AppModel.ActiveRoute
@@ -78,7 +76,7 @@ struct RouteSheet: View {
             }
 
             if !active.startedFromLocation {
-                Label("From the center of campus — turn on location for directions from where you are.", systemImage: "location.slash")
+                Label("From the center of campus. Turn on location for directions from where you are.", systemImage: "location.slash")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
             }
@@ -88,8 +86,6 @@ struct RouteSheet: View {
         .padding(.bottom, 12)
     }
 
-    /// Walk vs bus, with the time each takes. Only shown when a bus trip
-    /// genuinely beats walking.
     private var tripChooser: some View {
         HStack(spacing: 8) {
             ForEach(Array(model.tripOptions.enumerated()), id: \.offset) { index, trip in
@@ -128,8 +124,6 @@ struct RouteSheet: View {
         if let entrance = active.entrance { return "Via \(entrance.doorDescription)" }
         return "Walking directions"
     }
-
-    // MARK: Indoor guidance
 
     private var indoorGuidance: RoomLocation? {
         guard case .room(let buildingID, let room) = active.destination else { return nil }
@@ -184,7 +178,7 @@ struct RouteSheet: View {
                     FloorPlanView(plan: fp.plan, buildingName: fp.name, highlight: fp.room)
                 }
             } else {
-                Text("Floor plans for this building aren't published — this comes from the room number.")
+                Text("Floor plans for this building aren't published, so this comes from the room number.")
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
             }
@@ -251,7 +245,6 @@ struct StepRow: View {
     }
 }
 
-/// One leg of a walk-bus-walk trip.
 struct TripLegRow: View {
     let leg: Trip.Leg
     let isLast: Bool

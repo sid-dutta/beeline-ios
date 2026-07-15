@@ -1,11 +1,5 @@
 import Foundation
 
-/// Turning an indoor path into the sentences a person would say.
-///
-/// There are no distances here on purpose. Traced positions are 0–1 across an
-/// image whose real-world scale we don't know, so "walk 40 feet" would be
-/// invented. Turns and floor changes are real, and they're what someone
-/// actually needs: which way at the junction, which stairwell, which floor.
 public struct IndoorStep: Identifiable, Hashable, Sendable {
     public enum Kind: Hashable, Sendable {
         case enter
@@ -20,7 +14,6 @@ public struct IndoorStep: Identifiable, Hashable, Sendable {
     public var id: Int
     public var kind: Kind
     public var text: String
-    /// The floor this step happens on, so the plan can follow along.
     public var level: Int
     public var node: IndoorNode
 
@@ -39,11 +32,8 @@ public struct IndoorStep: Identifiable, Hashable, Sendable {
 
 public enum IndoorDirections {
 
-    /// Below this angle a bend is just the corridor, not a turn.
     static let turnThreshold = 40.0
 
-    /// Bearing in image space, degrees clockwise, with "up the image" as 0.
-    /// The y axis points down in an image, hence the negation.
     static func bearing(from a: IndoorNode, to b: IndoorNode) -> Double {
         let degrees = atan2(b.x - a.x, -(b.y - a.y)) * 180 / .pi
         return (degrees + 360).truncatingRemainder(dividingBy: 360)
@@ -78,9 +68,6 @@ public enum IndoorDirections {
         index += 1
 
         var heading: Double?
-        // The turn into the destination is folded into the arrival sentence
-        // instead of becoming its own step — "Turn left" then "Room 101 is on
-        // your left" says the same thing twice.
         var arrivalAngle: Double?
         let lastIndex = resolved.count - 1
         let endsAtDoor = resolved.last.map { $0.node.kind == .room || $0.node.kind == .door } ?? false
@@ -90,7 +77,6 @@ public enum IndoorDirections {
             let previous = resolved[i - 1]
             let current = resolved[i]
 
-            // A change of floor is a vertical link, not a corridor bend.
             if current.ref.level != previous.ref.level {
                 let going = current.ref.level > previous.ref.level ? "up" : "down"
                 let floorName = ordinal(current.ref.level)
@@ -146,7 +132,6 @@ public enum IndoorDirections {
             i += 1
         }
 
-        // Arrival: say which side the door is on when the geometry knows.
         if let last = resolved.last {
             var text = room.map { "Room \($0)" } ?? (last.node.room.map { "Room \($0)" } ?? "You've arrived")
             if last.node.room != nil || room != nil {

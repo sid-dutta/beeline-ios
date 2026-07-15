@@ -1,14 +1,11 @@
 import SwiftUI
 import BeelineCore
 
-/// Bookable library study rooms, free ones first. The question is never
-/// "does a study room exist" — it's "can I walk into one right now".
 struct StudySpacesView: View {
     @Environment(AppModel.self) private var model
     @Environment(\.dismiss) private var dismiss
     @Environment(\.openURL) private var openURL
 
-    /// Set when the user picks a room to walk to.
     let onRoute: (Place) -> Void
 
     @State private var freeOnly = false

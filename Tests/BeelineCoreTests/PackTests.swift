@@ -1,8 +1,6 @@
 import XCTest
 @testable import BeelineCore
 
-/// These run against the real data pack shipped in the bundle, so they double
-/// as a contract test on the pipeline's output.
 final class PackTests: XCTestCase {
 
     private static let pack: CampusPack = {
@@ -56,7 +54,6 @@ final class PackTests: XCTestCase {
     func testKeyBuildingsResolveAndAreRoutable() {
         let index = SearchIndex(pack: pack)
         let router = Router(graph: pack.graph)
-        // Building name → a room known to be scheduled there this term.
         for (query, room) in [("Klaus", "1443"), ("Clough", "144"), ("Skiles", "202"), ("Howey", "L3")] {
             guard case .building(let b)? = index.search(query).first else {
                 return XCTFail("\(query) did not resolve to a building")
@@ -67,7 +64,6 @@ final class PackTests: XCTestCase {
                 "\(b.name) should host room \(room)"
             )
         }
-        // Two buildings across campus must connect.
         guard case .building(let klaus)? = index.search("Klaus").first,
               case .building(let clough)? = index.search("Clough").first else {
             return XCTFail("lookup failed")

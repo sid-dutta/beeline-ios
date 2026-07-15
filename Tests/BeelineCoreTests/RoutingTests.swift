@@ -3,9 +3,6 @@ import XCTest
 
 final class RoutingTests: XCTestCase {
 
-    /// A 4-node ladder:  0 —path— 1 —steps— 2
-    ///                    \______road______/
-    /// The road detour is longer in meters but avoids steps.
     private func ladder() -> Graph {
         let nodes = [
             GraphNode(id: 0, lat: 33.7750, lng: -84.3960),
@@ -69,10 +66,7 @@ final class RoutingTests: XCTestCase {
         XCTAssertEqual(route.minutes, 5.0, accuracy: 0.001)
     }
 
-    // MARK: Directions
-
     func testDirectionsProduceDepartTurnArrive() {
-        // North for ~110 m, then a right turn east for ~90 m.
         let path = [
             Coordinate(lat: 33.7750, lng: -84.3960),
             Coordinate(lat: 33.7760, lng: -84.3960),
@@ -88,7 +82,6 @@ final class RoutingTests: XCTestCase {
     }
 
     func testDirectionsMergeInsignificantWiggles() {
-        // A gentle 5-degree bend should not become its own step.
         let path = [
             Coordinate(lat: 33.7750, lng: -84.3960),
             Coordinate(lat: 33.7755, lng: -84.3960),
@@ -104,8 +97,6 @@ final class RoutingTests: XCTestCase {
         XCTAssertEqual(Directions.format(100), "350 ft")
         XCTAssertEqual(Directions.format(2000), "1.2 mi")
     }
-
-    // MARK: Geo
 
     func testBearingAndTurnAngle() {
         XCTAssertEqual(Geo.bearing(33.775, -84.396, 33.776, -84.396), 0, accuracy: 0.5)

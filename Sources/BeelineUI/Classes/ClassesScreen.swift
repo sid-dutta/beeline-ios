@@ -1,7 +1,6 @@
 import SwiftUI
 import BeelineCore
 
-/// The user's own schedule: what's next, and the week laid out by day.
 struct ClassesScreen: View {
     @Environment(AppModel.self) private var model
     @Binding var tab: Tab
@@ -106,7 +105,6 @@ struct ClassesScreen: View {
     }
 
     private var daysWithClasses: [Weekday] {
-        // Start at today so the current day is at the top of the list.
         let ordered = (0..<7).compactMap { Weekday(rawValue: (today.rawValue - 1 + $0) % 7 + 1) }
         return ordered.filter { !model.schedule.events(on: $0).isEmpty }
     }
@@ -164,7 +162,6 @@ struct ClassRow: View {
     }
 }
 
-/// Search a course, pick a section.
 struct AddClassSheet: View {
     @Environment(AppModel.self) private var model
     @Environment(\.dismiss) private var dismiss

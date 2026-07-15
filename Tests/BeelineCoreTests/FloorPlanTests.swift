@@ -37,7 +37,6 @@ final class FloorPlanTests: XCTestCase {
     }
 
     func testPlanKnowsWhichFloorARoomIsOn() {
-        // Straight from the published plan, not the room-number rule.
         XCTAssertEqual(clough.floor(forRoom: "152")?.level, 1)
         XCTAssertEqual(clough.floor(forRoom: "278")?.level, 2)
         XCTAssertEqual(clough.floor(forRoom: "589")?.level, 5)
@@ -50,13 +49,10 @@ final class FloorPlanTests: XCTestCase {
     }
 
     func testUnpositionedRoomsStillNameTheirFloor() {
-        // 125 loses its transform in the PDF but is definitely on floor 1.
         let room = clough.floor(level: 1)?.room("125")
         XCTAssertNotNil(room)
         XCTAssertFalse(room?.isPositioned ?? true)
     }
-
-    // MARK: locate()
 
     func testLocatePrefersThePlanOverTheRoomNumberRule() {
         let located = pack.locate(room: "152", buildingID: clough.buildingId)
@@ -66,7 +62,6 @@ final class FloorPlanTests: XCTestCase {
     }
 
     func testLocateFallsBackToTheRuleWhenNoPlanExists() {
-        // Klaus has no published plan.
         let located = pack.locate(room: "1443", buildingID: "b156")
         XCTAssertFalse(located.isFromFloorPlan)
         XCTAssertEqual(located.floor, 1)
@@ -74,7 +69,6 @@ final class FloorPlanTests: XCTestCase {
     }
 
     func testLocateFallsBackForARoomTheePlanDoesNotList() {
-        // 250 is scheduled but not labeled on the plan; the rule still answers.
         let located = pack.locate(room: "250", buildingID: clough.buildingId)
         XCTAssertFalse(located.isFromFloorPlan)
         XCTAssertEqual(located.floor, 2)

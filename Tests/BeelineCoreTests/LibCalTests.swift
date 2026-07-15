@@ -18,8 +18,6 @@ final class LibCalTests: XCTestCase {
         return try! JSONSerialization.data(withJSONObject: ["slots": items, "bookings": []])
     }
 
-    // MARK: Parsing
-
     func testAdjacentSlotsMergeIntoOneInterval() throws {
         let data = json([
             (100, "2026-09-04 09:00:00", "2026-09-04 09:15:00"),
@@ -54,12 +52,9 @@ final class LibCalTests: XCTestCase {
     func testEmptyAndMalformedPayloads() throws {
         XCTAssertTrue(try LibCal.availability(fromJSON: Data(#"{"slots":[],"bookings":[]}"#.utf8), formatter: formatter).isEmpty)
         XCTAssertTrue(try LibCal.availability(fromJSON: Data(#"{}"#.utf8), formatter: formatter).isEmpty)
-        // A slot missing its end time is skipped, not fatal.
         let partial = Data(#"{"slots":[{"itemId":1,"start":"2026-09-04 09:00:00"}]}"#.utf8)
         XCTAssertTrue(try LibCal.availability(fromJSON: partial, formatter: formatter).isEmpty)
     }
-
-    // MARK: Status
 
     func testStatusFreeNowReportsWhenItEnds() {
         let now = date("2026-09-04 10:00:00")
@@ -102,8 +97,6 @@ final class LibCalTests: XCTestCase {
         XCTAssertEqual(a.nextFree(after: now), date("2026-09-04 12:00:00"))
     }
 
-    // MARK: Study places in the pack
-
     func testPackShipsBookableStudyRooms() throws {
         let pack = try CampusPack.bundled()
         let study = pack.places.filter { $0.kind == "study" }
@@ -116,7 +109,6 @@ final class LibCalTests: XCTestCase {
             XCTAssertNotNil(place.url, place.name)
         }
 
-        // Clough study rooms resolve to a coordinate through their building.
         guard let clough = bookable.first(where: { $0.name.hasPrefix("Clough 2") }) else {
             return XCTFail("expected a Clough study room")
         }
@@ -133,8 +125,6 @@ final class LibCalTests: XCTestCase {
         }
         XCTAssertGreaterThan(rooms.count, 10)
 
-        // The plan labels 242–252 as one range, so not every bookable room is
-        // individually drawn. Those still resolve to a floor by number.
         let pinned = rooms.filter { plan.floor(forRoom: $0.room!) != nil }
         XCTAssertGreaterThanOrEqual(pinned.count, 5, "several study rooms should pin to the plan")
         for room in rooms where plan.floor(forRoom: room.room!) == nil {

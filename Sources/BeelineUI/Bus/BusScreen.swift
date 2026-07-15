@@ -2,8 +2,6 @@ import MapKit
 import SwiftUI
 import BeelineCore
 
-/// What TransLoc doesn't do: routes and live buses on one screen, with the
-/// arrival for each stop right there instead of two taps away.
 struct BusScreen: View {
     @Environment(AppModel.self) private var model
     @State private var selectedRoute: Int?
@@ -40,8 +38,6 @@ struct BusScreen: View {
         }
         .onDisappear { model.stopBusUpdates() }
     }
-
-    // MARK: Map
 
     private var map: some View {
         Map(position: $camera) {
@@ -80,8 +76,6 @@ struct BusScreen: View {
         guard let id = selectedRoute else { return model.vehicles }
         return model.vehicles(onRoute: id)
     }
-
-    // MARK: Route picker
 
     private var routePicker: some View {
         ScrollViewReader { proxy in
@@ -125,7 +119,6 @@ struct BusScreen: View {
             .padding(.horizontal)
             .padding(.vertical, 10)
         }
-        // Keep the selected route visible; it is rarely first alphabetically.
         .onChange(of: selectedRoute) { _, id in
             guard let id else { return }
             withAnimation { proxy.scrollTo(id, anchor: .center) }
@@ -135,8 +128,6 @@ struct BusScreen: View {
         }
         }
     }
-
-    // MARK: Stops
 
     @ViewBuilder
     private var stopList: some View {

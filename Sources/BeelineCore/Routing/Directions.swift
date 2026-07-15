@@ -1,7 +1,5 @@
 import Foundation
 
-/// Turns a route's coordinate chain into human steps: "Head north 120 m",
-/// "Turn left", "Take the steps", "Enter Klaus at the west door".
 public struct Step: Identifiable, Hashable, Sendable {
     public enum Kind: Hashable, Sendable {
         case depart, straight, slightLeft, left, sharpLeft, slightRight, right, sharpRight, arrive
@@ -30,9 +28,7 @@ public struct Step: Identifiable, Hashable, Sendable {
 
 public enum Directions {
 
-    /// Minimum leg length that gets its own step; shorter wiggles are merged.
     static let minimumLegMeters = 12.0
-    /// Below this angle a bend is "continue", not a turn.
     static let turnThreshold = 35.0
 
     public static func steps(for coordinates: [Coordinate], destinationName: String, entranceName: String? = nil) -> [Step] {
@@ -40,7 +36,6 @@ public enum Directions {
             return [Step(id: 0, kind: .arrive, text: "You're at \(destinationName)", meters: 0, coordinate: coordinates.first ?? Coordinate(lat: 0, lng: 0))]
         }
 
-        // Simplify: drop points that barely change direction so each step is a real leg.
         var legs: [(start: Coordinate, end: Coordinate, meters: Double, bearing: Double)] = []
         var legStart = coordinates[0]
         var legMeters = 0.0
@@ -58,7 +53,6 @@ public enum Directions {
                 legBearing = br
             }
             legMeters += m
-            // Keep the leg's bearing anchored to its first segment; small drift is fine.
         }
         legs.append((legStart, coordinates[coordinates.count - 1], legMeters, legBearing ?? 0))
 

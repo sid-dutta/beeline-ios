@@ -10,7 +10,6 @@ public enum Geo {
         return 2 * earthRadius * asin(sqrt(a))
     }
 
-    /// Initial bearing from point 1 to point 2, degrees clockwise from north.
     public static func bearing(_ lat1: Double, _ lng1: Double, _ lat2: Double, _ lng2: Double) -> Double {
         let p1 = lat1 * .pi / 180, p2 = lat2 * .pi / 180
         let dl = (lng2 - lng1) * .pi / 180
@@ -20,7 +19,6 @@ public enum Geo {
         return (deg + 360).truncatingRemainder(dividingBy: 360)
     }
 
-    /// Signed turn angle in (-180, 180]: positive is a right turn.
     public static func turnAngle(from a: Double, to b: Double) -> Double {
         var d = b - a
         while d > 180 { d -= 360 }
@@ -33,7 +31,6 @@ public enum Geo {
         return names[Int((bearing + 22.5) / 45) % 8]
     }
 
-    /// Ray-casting point-in-polygon on lat/lng — fine at campus scale.
     public static func contains(_ polygon: [Coordinate], lat: Double, lng: Double) -> Bool {
         guard polygon.count >= 3 else { return false }
         var inside = false

@@ -1,9 +1,5 @@
 import Foundation
 
-// The data pack is produced by `beeline-api`'s pipeline. Keys are snake_case
-// on disk and decoded with `.convertFromSnakeCase`, so property names here
-// must match the converted form exactly.
-
 public struct Coordinate: Codable, Hashable, Sendable {
     public var lat: Double
     public var lng: Double
@@ -13,7 +9,6 @@ public struct Coordinate: Codable, Hashable, Sendable {
         self.lng = lng
     }
 
-    /// Polygons and polylines are stored as `[[lat, lng], …]`.
     public init(from decoder: Decoder) throws {
         var c = try decoder.unkeyedContainer()
         lat = try c.decode(Double.self)
@@ -35,7 +30,6 @@ public struct Entrance: Codable, Hashable, Sendable, Identifiable {
     public var main: Bool
     public var name: String?
     public var source: String
-    /// Walking-graph node this door is tied to; nil if it couldn't be attached.
     public var node: Int?
 }
 
@@ -61,7 +55,6 @@ public struct Meeting: Codable, Hashable, Sendable {
     public var crn: String
     public var title: String
     public var days: String
-    /// Minutes since midnight.
     public var start: Int
     public var end: Int
     public var scheduleType: String
@@ -80,22 +73,18 @@ public struct Place: Codable, Hashable, Sendable, Identifiable {
     public var id: String
     public var name: String
     public var kind: String
-    /// Bookable study rooms have no coordinate of their own — they live
-    /// inside a building, and `coordinate(in:)` resolves that.
     public var lat: Double?
     public var lng: Double?
     public var source: String?
     public var buildingId: String?
     public var room: String?
     public var capacity: Int?
-    /// LibCal identifiers, for looking up live availability.
     public var bookingId: Int?
     public var locationId: Int?
     public var url: String?
 
     public var isBookable: Bool { bookingId != nil }
 
-    /// A room title already carries its capacity; strip it for display.
     public var displayName: String {
         guard let range = name.range(of: " (Capacity") else { return name }
         return String(name[..<range.lowerBound])
@@ -117,11 +106,9 @@ public struct GraphNode: Codable, Hashable, Sendable {
 public struct GraphEdge: Codable, Hashable, Sendable {
     public var a: Int
     public var b: Int
-    /// Real length in meters.
     public var m: Double
-    /// path | steps | road | link
     public var kind: String
-    /// Meters × a preference multiplier; what the router minimizes.
+    // Meters x a multiplier per surface, so footways beat roads. Not a distance.
     public var cost: Double
     public var accessible: Bool
 
@@ -182,8 +169,6 @@ public struct CampusPack: Codable, Sendable {
     public var bus: BusData
     public var floorplans: [FloorPlan]
 
-    /// An empty pack, so the app can render a blank map instead of crashing
-    /// if the bundled resource is ever missing.
     public static let empty = CampusPack(
         packVersion: 0,
         generatedAt: "",
@@ -218,7 +203,6 @@ public struct CampusPack: Codable, Sendable {
         self.floorplans = floorplans
     }
 
-    // Older packs predate floor plans.
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         packVersion = try c.decode(Int.self, forKey: .packVersion)
@@ -238,7 +222,6 @@ public struct CampusPack: Codable, Sendable {
         return try decoder.decode(CampusPack.self, from: data)
     }
 
-    /// The pack bundled with this build of the app.
     public static func bundled() throws -> CampusPack {
         guard let url = Bundle.module.url(forResource: "campus", withExtension: "json") else {
             throw PackError.missingResource

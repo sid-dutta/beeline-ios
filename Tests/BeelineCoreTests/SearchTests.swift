@@ -39,7 +39,6 @@ final class SearchTests: XCTestCase {
         }
         XCTAssertEqual(id, "CS 1332")
         XCTAssertFalse(rooms.isEmpty)
-        // Without the space too.
         guard case .course(let id2, _, _)? = index.search("cs1332").first else {
             return XCTFail("cs1332 should be a course")
         }

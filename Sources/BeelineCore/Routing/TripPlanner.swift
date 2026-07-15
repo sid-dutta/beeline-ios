@@ -1,15 +1,5 @@
 import Foundation
 
-/// Walk, or walk-bus-walk?
-///
-/// The Stinger tracker can tell you where the buses are; it can't tell you
-/// whether taking one actually gets you to class sooner. That needs the
-/// walking graph and the bus timetable in the same place, which is the one
-/// thing Beeline has.
-///
-/// A bus leg only wins when it beats walking by a real margin, and it is only
-/// offered when we can name a bus the rider can actually catch.
-
 public struct Trip: Identifiable, Sendable {
     public enum Leg: Sendable {
         case walk(meters: Double, seconds: TimeInterval, coordinates: [Coordinate], to: String)
@@ -19,7 +9,6 @@ public struct Trip: Identifiable, Sendable {
 
     public var legs: [Leg]
     public var totalSeconds: TimeInterval
-    /// Nil for a pure walk.
     public var routeName: String?
 
     public var id: String {
@@ -37,7 +26,6 @@ public struct Trip: Identifiable, Sendable {
         }
     }
 
-    /// Every coordinate the trip covers, for drawing it on the map.
     public var coordinates: [Coordinate] {
         legs.flatMap { leg -> [Coordinate] in
             switch leg {
@@ -50,13 +38,9 @@ public struct Trip: Identifiable, Sendable {
 }
 
 public struct TripPlanner: Sendable {
-    /// Only consider boarding at a stop this close to the start.
     public static let boardRadius = 550.0
-    /// Only consider getting off this close to the destination.
     public static let alightRadius = 550.0
-    /// A bus trip has to save at least this much to be worth suggesting.
     public static let minimumSavingSeconds = 180.0
-    /// Walking pace used for every walk leg, metres per second.
     public static let walkingSpeed = 1.35
 
     private let router: Router
@@ -67,10 +51,6 @@ public struct TripPlanner: Sendable {
         self.routes = routes
     }
 
-    // MARK: Planning
-
-    /// Best options from a point to a set of destination graph nodes,
-    /// walking-only first, then the best bus trip if one genuinely helps.
     public func plan(
         fromLat lat: Double,
         lng: Double,
@@ -105,8 +85,6 @@ public struct TripPlanner: Sendable {
         return [best, walkTrip]
     }
 
-    // MARK: Bus search
-
     private func bestBusTrip(
         from startNode: Int,
         fromLat: Double, fromLng: Double,
@@ -124,7 +102,6 @@ public struct TripPlanner: Sendable {
             }
             guard !boardable.isEmpty else { continue }
 
-            // Candidate alighting stops: near any destination node.
             let alightable = route.stops.filter { stop in
                 guard let node = router.nearestNode(lat: stop.lat, lng: stop.lng, maxMeters: 120) else { return false }
                 return router.route(fromAny: [node], toAny: goals, accessible: accessible)
@@ -137,7 +114,6 @@ public struct TripPlanner: Sendable {
                       let toStop = router.route(fromAny: [startNode], toAny: [boardNode], accessible: accessible) else { continue }
                 let walkToStop = seconds(toStop.route.meters)
 
-                // The first bus on this route we can actually reach.
                 guard let wait = waitSeconds(routeID: route.id, stopID: board.id, afterWalking: walkToStop, arrivals: arrivals) else { continue }
 
                 for alight in alightable where alight.id != board.id {
@@ -173,23 +149,18 @@ public struct TripPlanner: Sendable {
         return best
     }
 
-    // MARK: Pieces
-
     func seconds(_ meters: Double) -> TimeInterval { meters / Self.walkingSpeed }
 
-    /// The wait for the first bus we can still catch, or nil when no live
-    /// arrival is reachable — we don't guess at a headway.
     func waitSeconds(routeID: Int, stopID: Int, afterWalking walk: TimeInterval, arrivals: [StopArrival]) -> TimeInterval? {
         let candidates = arrivals
             .filter { $0.routeID == routeID && $0.routeStopID == stopID }
             .map { TimeInterval($0.secondsToStop) }
             .sorted()
-        // A bus arriving before we can get there is one we miss.
+        // A bus arriving before we can reach the stop is one we miss.
         guard let catchable = candidates.first(where: { $0 >= walk }) else { return nil }
         return catchable - walk
     }
 
-    /// Stinger routes are loops, so riding "past the end" wraps around.
     func rideSeconds(route: BusRoute, from board: BusStop, to alight: BusStop) -> TimeInterval? {
         let ordered = route.stops.sorted { $0.order < $1.order }
         guard let start = ordered.firstIndex(where: { $0.id == board.id }),
@@ -215,7 +186,6 @@ public struct TripPlanner: Sendable {
         return start <= end ? end - start : ordered.count - start + end
     }
 
-    /// The stop-to-stop path, used to draw the ride on the map.
     func ridePath(route: BusRoute, from board: BusStop, to alight: BusStop) -> [Coordinate] {
         let ordered = route.stops.sorted { $0.order < $1.order }
         guard let start = ordered.firstIndex(where: { $0.id == board.id }),

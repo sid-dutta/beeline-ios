@@ -1,8 +1,6 @@
 import Foundation
 import BeelineCore
 
-/// What the map panel is showing. The map has one job at a time: browse and
-/// search, look at a thing, or follow a route.
 enum PanelState: Equatable {
     case search
     case building(String)
@@ -17,13 +15,11 @@ enum PanelState: Equatable {
     }
 }
 
-/// A category of places the user can switch on over the map.
 enum PlaceLayer: String, CaseIterable, Identifiable, Equatable {
     case study, dining, restroom, vending, stop, library, gym, makerspace, quiet, parking, lactation
 
     var id: String { rawValue }
 
-    /// The `kind` used in the data pack.
     var kind: String { rawValue }
 
     var title: String {
@@ -58,7 +54,6 @@ enum PlaceLayer: String, CaseIterable, Identifiable, Equatable {
         }
     }
 
-    /// Layers worth putting in the quick row, in the order students need them.
     static let featured: [PlaceLayer] = [.study, .dining, .restroom, .vending, .stop, .library]
 
     static func from(kind: String) -> PlaceLayer? {

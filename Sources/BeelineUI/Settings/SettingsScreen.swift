@@ -55,7 +55,7 @@ struct SettingsScreen: View {
     private var locationStatus: String {
         switch location.authorization {
         case .authorizedAlways, .authorizedWhenInUse: location.coordinate == nil ? "Waiting for a fix" : "On"
-        case .denied, .restricted: "Off — enable in Settings"
+        case .denied, .restricted: "Off. Enable in Settings"
         default: "Not enabled"
         }
     }

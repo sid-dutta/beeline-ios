@@ -7,13 +7,9 @@ import UIKit
 import AppKit
 #endif
 
-/// The published floor plan for a building, with the room you're headed to
-/// marked. Floors run bottom-to-top down the side, the way a building
-/// directory reads.
 struct FloorPlanView: View {
     let plan: FloorPlan
     let buildingName: String
-    /// The room to highlight, if we're navigating to one.
     var highlight: String?
 
     @Environment(\.dismiss) private var dismiss
@@ -50,8 +46,6 @@ struct FloorPlanView: View {
         }
     }
 
-    // MARK: Floors
-
     private var floorPicker: some View {
         VStack(spacing: 6) {
             ForEach(plan.floors.sorted { $0.level > $1.level }) { f in
@@ -86,8 +80,6 @@ struct FloorPlanView: View {
         .frame(width: 52)
     }
 
-    // MARK: Plan
-
     @ViewBuilder
     private var planImage: some View {
         if let floor, let image = PlatformImage.load(floor.imageURL) {
@@ -118,8 +110,6 @@ struct FloorPlanView: View {
             : CGSize(width: bounds.height * aspect, height: bounds.height)
     }
 
-    // MARK: Caption
-
     @ViewBuilder
     private var caption: some View {
         let text: String = {
@@ -143,13 +133,10 @@ struct FloorPlanView: View {
     }
 }
 
-/// A pulsing ring, so the eye finds the room without the marker hiding it.
 struct RoomMarker: View {
     @State private var pulse = false
 
     var body: some View {
-        // A ring drawn *around* the room number rather than over it, so the
-        // label stays readable.
         ZStack {
             Circle()
                 .stroke(Color.beelineGold, lineWidth: 3)
@@ -169,7 +156,6 @@ struct RoomMarker: View {
     }
 }
 
-/// Loads a bundled image on either platform.
 enum PlatformImage {
     static func load(_ url: URL?) -> Image? {
         guard let url, let data = try? Data(contentsOf: url) else { return nil }

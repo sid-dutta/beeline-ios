@@ -1,8 +1,5 @@
 import Foundation
 
-/// The user's saved course sections and everything derived from them:
-/// today's classes, what's next, and when to leave.
-
 public struct EnrolledSection: Codable, Hashable, Sendable, Identifiable {
     public var course: String
     public var section: String
@@ -15,13 +12,11 @@ public struct EnrolledSection: Codable, Hashable, Sendable, Identifiable {
     }
 }
 
-/// One class occurrence, resolved against the pack.
 public struct ClassEvent: Hashable, Sendable, Identifiable {
     public var meeting: Meeting
     public var buildingID: String
     public var buildingName: String
     public var room: String
-    /// Minutes since midnight.
     public var start: Int
     public var end: Int
     public var weekday: Weekday
@@ -38,7 +33,6 @@ public struct ClassEvent: Hashable, Sendable, Identifiable {
 public enum Weekday: Int, CaseIterable, Codable, Sendable {
     case sunday = 1, monday, tuesday, wednesday, thursday, friday, saturday
 
-    /// Registrar day letters: M T W R F S U.
     public var letter: Character {
         switch self {
         case .monday: "M"
@@ -72,7 +66,6 @@ public enum Weekday: Int, CaseIterable, Codable, Sendable {
         return (c.hour ?? 0) * 60 + (c.minute ?? 0)
     }
 
-    /// 750 → "12:30 PM"
     public static func clock(_ minutes: Int) -> String {
         let h24 = (minutes / 60) % 24, m = minutes % 60
         let suffix = h24 < 12 ? "AM" : "PM"
@@ -85,7 +78,6 @@ public enum Weekday: Int, CaseIterable, Codable, Sendable {
 public struct Schedule: Sendable {
     public private(set) var events: [ClassEvent]
 
-    /// Resolve saved sections into concrete weekly events using the pack.
     public init(sections: [EnrolledSection], pack: CampusPack) {
         let buildings = Dictionary(pack.buildings.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
         let wanted = Set(sections.map(\.id))
@@ -116,8 +108,6 @@ public struct Schedule: Sendable {
         events.filter { $0.weekday == day }
     }
 
-    /// The next class from `now`, searching forward up to a week. Returns the
-    /// event and how many minutes until it starts (negative while in progress).
     public func next(from now: Date = Date(), calendar: Calendar = .current) -> (event: ClassEvent, minutesUntil: Int)? {
         let today = Weekday.from(date: now, calendar: calendar)
         let minutes = Weekday.minutesSinceMidnight(now, calendar: calendar)
@@ -133,7 +123,6 @@ public struct Schedule: Sendable {
         return nil
     }
 
-    /// When to leave for `event`, given how long the walk takes.
     public static func leaveBy(event: ClassEvent, walkMinutes: Double, buffer: Int = 3) -> Int {
         max(0, event.start - Int(walkMinutes.rounded(.up)) - buffer)
     }

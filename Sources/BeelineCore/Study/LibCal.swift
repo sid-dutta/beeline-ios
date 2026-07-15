@@ -1,16 +1,7 @@
 import Foundation
 
-/// Live availability for the library's bookable study rooms.
-///
-/// LibCal's booking grid is a public POST that returns the *free* 15-minute
-/// slots for a date range. Turning that into "free now, until 3:45" is the
-/// whole point — a static pin telling you a study room exists is far less
-/// useful than knowing you can walk into it.
-
 public struct Availability: Hashable, Sendable {
-    /// LibCal space id.
     public var spaceID: Int
-    /// Free intervals, merged and sorted.
     public var free: [DateInterval]
 
     public init(spaceID: Int, free: [DateInterval]) {
@@ -22,17 +13,14 @@ public struct Availability: Hashable, Sendable {
         free.contains { $0.contains(moment) }
     }
 
-    /// When the current free stretch ends, if it's free right now.
     public func freeUntil(from moment: Date) -> Date? {
         free.first { $0.contains(moment) }?.end
     }
 
-    /// The next moment this room opens up, if it isn't free now.
     public func nextFree(after moment: Date) -> Date? {
         free.first { $0.start > moment }?.start
     }
 
-    /// How the UI describes this room right now.
     public func status(now: Date = Date()) -> Status {
         if free.isEmpty { return .unknown }
         if isFree(at: now) {
@@ -60,11 +48,7 @@ public struct Availability: Hashable, Sendable {
     }
 }
 
-// MARK: - Parsing
-
 public enum LibCal {
-    /// Slot timestamps arrive as `"2026-09-04 09:00:00"` in the library's
-    /// own time zone.
     public static func makeFormatter(timeZone: TimeZone = TimeZone(identifier: "America/New_York") ?? .current) -> DateFormatter {
         let f = DateFormatter()
         f.dateFormat = "yyyy-MM-dd HH:mm:ss"
@@ -73,7 +57,6 @@ public enum LibCal {
         return f
     }
 
-    /// Group the flat slot list into merged free intervals per space.
     public static func availability(fromJSON data: Data, formatter: DateFormatter = makeFormatter()) throws -> [Int: Availability] {
         guard let root = try JSONSerialization.jsonObject(with: data) as? [String: Any],
               let slots = root["slots"] as? [[String: Any]] else {
@@ -99,7 +82,6 @@ public enum LibCal {
         }
     }
 
-    /// Adjacent or overlapping 15-minute slots become one interval.
     public static func merge(_ intervals: [DateInterval]) -> [DateInterval] {
         let sorted = intervals.sorted { $0.start < $1.start }
         var merged: [DateInterval] = []
@@ -116,10 +98,7 @@ public enum LibCal {
     }
 }
 
-// MARK: - Client
-
 public protocol StudyAvailabilityService: Sendable {
-    /// Availability keyed by LibCal space id, for the day containing `date`.
     func availability(locationIDs: [Int], on date: Date) async throws -> [Int: Availability]
 }
 
@@ -136,9 +115,6 @@ public actor LibCalClient: StudyAvailabilityService {
     }
 
     public func availability(locationIDs: [Int], on date: Date = Date()) async throws -> [Int: Availability] {
-        // Five serial round trips took long enough that the UI showed no
-        // status at all on launch; the locations are independent, so fetch
-        // them together. One failing location must not lose the others.
         let pages = await withTaskGroup(of: [Int: Availability].self) { group in
             for lid in locationIDs {
                 group.addTask { [weak self] in
@@ -203,7 +179,6 @@ public actor LibCalClient: StudyAvailabilityService {
     }
 }
 
-/// Deterministic availability for previews and tests.
 public struct PreviewStudyService: StudyAvailabilityService {
     public init() {}
 

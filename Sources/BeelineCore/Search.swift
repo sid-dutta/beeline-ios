@@ -1,6 +1,5 @@
 import Foundation
 
-/// One search box for buildings, rooms, courses, and places.
 public enum SearchResult: Identifiable, Hashable, Sendable {
     case building(Building)
     case room(Room, Building)
@@ -43,12 +42,10 @@ public struct SearchIndex: Sendable {
     private let buildingsByID: [String: Building]
     private let rooms: [Room]
     private let places: [Place]
-    /// course id → (title, rooms)
     private let courses: [String: (String, [(Room, Building)])]
 
     public init(pack: CampusPack) {
         buildings = pack.buildings
-        // Tolerate a malformed pack rather than trapping in front of the user.
         buildingsByID = Dictionary(pack.buildings.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
         rooms = pack.rooms
         places = pack.places
@@ -76,7 +73,6 @@ public struct SearchIndex: Sendable {
         let qTokens = q.split(separator: " ").map(String.init)
         var scored: [(Double, SearchResult)] = []
 
-        // "klaus 1443", "van leer e465", "1443"
         if let (bq, roomQ) = splitRoomQuery(qTokens) {
             for room in rooms where normalize(room.room).hasPrefix(roomQ) {
                 guard let b = buildingsByID[room.buildingId] else { continue }
@@ -87,7 +83,6 @@ public struct SearchIndex: Sendable {
             }
         }
 
-        // Courses: "cs 1332", "cs1332", "data struct"
         let compact = q.replacingOccurrences(of: " ", with: "")
         for (course, (title, rooms)) in courses {
             let cid = normalize(course), cidCompact = cid.replacingOccurrences(of: " ", with: "")
@@ -117,8 +112,6 @@ public struct SearchIndex: Sendable {
             .map { $0 }
     }
 
-    // MARK: Scoring
-
     private func nameScore(_ q: String, _ b: Building) -> Double {
         let qTokens = q.split(separator: " ").map(String.init)
         var best = 0.0
@@ -131,7 +124,6 @@ public struct SearchIndex: Sendable {
         return best
     }
 
-    /// Fraction of query tokens that prefix-match a token of the candidate.
     private func tokenScore(_ qTokens: [String], _ candidate: String) -> Double {
         let cTokens = candidate.split(separator: " ").map(String.init)
         guard !qTokens.isEmpty, !cTokens.isEmpty else { return 0 }
@@ -139,11 +131,9 @@ public struct SearchIndex: Sendable {
         return hits == qTokens.count ? 1.0 : (hits > 0 && qTokens.count > 1 ? Double(hits) / Double(qTokens.count) * 0.5 : 0)
     }
 
-    /// Last token that looks like a room number splits the query.
     private func splitRoomQuery(_ tokens: [String]) -> (String, String)? {
         guard let last = tokens.last, last.contains(where: \.isNumber) else { return nil }
         let head = tokens.dropLast().joined(separator: " ")
-        // "cs 1332" is a course, not a room in a building called "cs".
         if head.count <= 4, head.allSatisfy(\.isLetter), courses.keys.contains(where: { normalize($0) == "\(head) \(last)" }) {
             return nil
         }

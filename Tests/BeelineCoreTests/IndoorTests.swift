@@ -1,15 +1,6 @@
 import XCTest
 @testable import BeelineCore
 
-/// A synthetic two-floor building. Nothing here claims to be a real Georgia
-/// Tech interior — it exists so the routing is proven before anyone traces
-/// an actual building.
-///
-///  Floor 1:  entrance(.5,.95) → c1(.5,.7) → c2(.5,.4)
-///                                  ├── r101(.2,.7)
-///                                  └── stairs(.8,.4), lift(.9,.4)
-///  Floor 2:  stairs2(.8,.4) → c3(.5,.4) → r201(.2,.4)
-///                             lift2(.9,.4) → c3
 final class IndoorTests: XCTestCase {
 
     private func graph(accessibleStairs: Bool = false) -> IndoorGraph {
@@ -46,8 +37,6 @@ final class IndoorTests: XCTestCase {
             ]
         )
     }
-
-    // MARK: Model
 
     func testRoomLookupAcrossFloors() {
         let g = graph()
@@ -87,8 +76,6 @@ final class IndoorTests: XCTestCase {
         XCTAssertEqual(g.floor(level: 1)?.node("a")?.kind, .corridor)
     }
 
-    // MARK: Routing
-
     func testRoutesWithinAFloor() {
         let router = IndoorRouter(graph: graph())
         let path = router.pathToRoom("101")
@@ -115,7 +102,6 @@ final class IndoorTests: XCTestCase {
     }
 
     func testAccessibleRoutingFailsWhenOnlyStairsConnect() {
-        // Drop the lift entirely; a step-free route must not be invented.
         var g = graph()
         g.floors[0].nodes.removeAll { $0.id == "l1" }
         g.floors[0].edges.removeAll { $0.contains("l1") }
@@ -130,8 +116,6 @@ final class IndoorTests: XCTestCase {
 
     func testStairsMarkedStepFreeAreAllowed() {
         let router = IndoorRouter(graph: graph(accessibleStairs: true))
-        // Even marked accessible, a `.stairs` node is refused for step-free
-        // routing — a ramp should be traced as a corridor, not as stairs.
         let path = router.pathToRoom("201", accessible: true)
         XCTAssertTrue(path?.usesElevator ?? false)
     }
@@ -150,8 +134,6 @@ final class IndoorTests: XCTestCase {
         XCTAssertEqual(path?.nodes, [ref])
     }
 
-    // MARK: Directions
-
     func testDirectionsNameTheEntranceAndTheRoom() {
         let g = graph()
         let router = IndoorRouter(graph: g)
@@ -168,7 +150,6 @@ final class IndoorTests: XCTestCase {
         let router = IndoorRouter(graph: g)
         guard let path = router.pathToRoom("101") else { return XCTFail("no path") }
         let steps = IndoorDirections.steps(for: path, in: g, room: "101")
-        // Walking north up the corridor, room 101 sits to the west — left.
         XCTAssertTrue(steps.last?.text.contains("on your left") ?? false, steps.last?.text ?? "")
     }
 
