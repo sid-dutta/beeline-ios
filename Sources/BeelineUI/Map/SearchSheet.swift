@@ -11,6 +11,7 @@ struct SearchSheet: View {
     @Binding var selection: String?
 
     @FocusState private var searchFocused: Bool
+    @State private var showingStudy = false
 
     var body: some View {
         @Bindable var model = model
@@ -47,6 +48,12 @@ struct SearchSheet: View {
                 resultsList
             }
         }
+        .sheet(isPresented: $showingStudy) {
+            StudySpacesView { room in
+                showingStudy = false
+                model.route(to: .place(room.id))
+            }
+        }
     }
 
     // MARK: Idle
@@ -69,14 +76,28 @@ struct SearchSheet: View {
                         HStack(spacing: 8) {
                             ForEach(Category.allCases) { category in
                                 Button {
-                                    model.query = category.query
-                                    expand()
+                                    if category == .study {
+                                        showingStudy = true
+                                    } else {
+                                        model.query = category.query
+                                        expand()
+                                    }
                                 } label: {
-                                    Label(category.title, systemImage: category.symbol)
-                                        .font(.subheadline)
-                                        .padding(.horizontal, 12)
-                                        .padding(.vertical, 8)
-                                        .background(Color.groupedBackground, in: Capsule())
+                                    HStack(spacing: 6) {
+                                        Label(category.title, systemImage: category.symbol)
+                                        if category == .study, model.freeStudyCount > 0 {
+                                            Text("\(model.freeStudyCount) free")
+                                                .font(.caption2.weight(.bold))
+                                                .foregroundStyle(.white)
+                                                .padding(.horizontal, 5)
+                                                .padding(.vertical, 1)
+                                                .background(Color.beelineWalk, in: Capsule())
+                                        }
+                                    }
+                                    .font(.subheadline)
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 8)
+                                    .background(Color.groupedBackground, in: Capsule())
                                 }
                                 .buttonStyle(.plain)
                             }
@@ -216,7 +237,7 @@ struct SearchSheet: View {
 }
 
 enum Category: String, CaseIterable, Identifiable {
-    case dining, restroom, library, gym, study, stop
+    case study, dining, restroom, vending, library, gym, stop
 
     var id: String { rawValue }
 
@@ -226,7 +247,8 @@ enum Category: String, CaseIterable, Identifiable {
         case .restroom: "Restrooms"
         case .library: "Library"
         case .gym: "Gym"
-        case .study: "Study"
+        case .study: "Study rooms"
+        case .vending: "Vending"
         case .stop: "Bus stops"
         }
     }
@@ -241,7 +263,10 @@ enum Category: String, CaseIterable, Identifiable {
         case "restroom": "figure.dress.line.vertical.figure"
         case "library": "books.vertical.fill"
         case "gym": "figure.run"
-        case "study": "lamp.desk.fill"
+        case "study": "book.closed.fill"
+        case "vending": "takeoutbag.and.cup.and.straw.fill"
+        case "makerspace": "wrench.and.screwdriver.fill"
+        case "quiet": "moon.zzz.fill"
         case "stop": "bus.fill"
         case "parking": "parkingsign"
         case "lactation": "figure.and.child.holdinghands"

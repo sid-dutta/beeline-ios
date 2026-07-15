@@ -79,7 +79,15 @@ public final class AppModel {
     public private(set) var busError: String?
     public private(set) var isRefreshingBus = false
 
+    // MARK: Study spaces
+
+    public private(set) var studyAvailability: [Int: Availability] = [:]
+    public private(set) var studyUpdatedAt: Date?
+    public private(set) var studyError: String?
+    public private(set) var isRefreshingStudy = false
+
     private let bus: BusService
+    private let study: StudyAvailabilityService
     private let defaults: UserDefaults
     private var busTimer: Task<Void, Never>?
 
@@ -90,11 +98,17 @@ public final class AppModel {
 
     // MARK: Init
 
-    public init(pack: CampusPack, bus: BusService, defaults: UserDefaults = .standard) {
+    public init(
+        pack: CampusPack,
+        bus: BusService,
+        study: StudyAvailabilityService = LibCalClient(),
+        defaults: UserDefaults = .standard
+    ) {
         self.pack = pack
         self.router = Router(graph: pack.graph)
         self.index = SearchIndex(pack: pack)
         self.bus = bus
+        self.study = study
         self.defaults = defaults
         self.accessibleRouting = defaults.bool(forKey: Keys.accessible)
         let saved = (defaults.data(forKey: Keys.enrolled))
@@ -106,11 +120,11 @@ public final class AppModel {
     /// Production: the pack from the bundle, live buses.
     public static func live() -> AppModel {
         do {
-            return AppModel(pack: try CampusPack.bundled(), bus: RideSystemsClient())
+            return AppModel(pack: try CampusPack.bundled(), bus: RideSystemsClient(), study: LibCalClient())
         } catch {
             // A pack that won't load is a build error, not a runtime state the
             // user can fix — but crashing on launch is worse than an empty map.
-            let model = AppModel(pack: .empty, bus: PreviewBusService())
+            let model = AppModel(pack: .empty, bus: PreviewBusService(), study: PreviewStudyService())
             model.loadError = error.localizedDescription
             return model
         }
@@ -120,6 +134,7 @@ public final class AppModel {
         AppModel(
             pack: (try? CampusPack.bundled()) ?? .empty,
             bus: PreviewBusService(),
+            study: PreviewStudyService(),
             defaults: UserDefaults(suiteName: "beeline.preview") ?? .standard
         )
     }
@@ -145,7 +160,9 @@ public final class AppModel {
         case .building(let id), .room(let id, _):
             building(id).map { CLLocationCoordinate2D(latitude: $0.lat, longitude: $0.lng) }
         case .place(let id):
-            place(id).map { CLLocationCoordinate2D(latitude: $0.lat, longitude: $0.lng) }
+            place(id).flatMap(pack.coordinate(of:)).map {
+                CLLocationCoordinate2D(latitude: $0.lat, longitude: $0.lng)
+            }
         }
     }
 
@@ -180,11 +197,25 @@ public final class AppModel {
             }
             goalNodes = entranceCandidates.compactMap(\.node)
         case .place(let id):
-            guard let p = place(id), let node = router.nearestNode(lat: p.lat, lng: p.lng) else {
+            // A bookable study room has no point of its own — route to the
+            // building that holds it, and pick its door like any other.
+            guard let p = place(id) else {
+                routingError = "That place isn't in the map data."
+                return
+            }
+            if let buildingID = p.buildingId, let b = building(buildingID) {
+                entranceCandidates = b.routableEntrances
+                if accessibleRouting, entranceCandidates.contains(where: \.accessible) {
+                    entranceCandidates = entranceCandidates.filter(\.accessible)
+                }
+                goalNodes = entranceCandidates.compactMap(\.node)
+            } else if let c = pack.coordinate(of: p),
+                      let node = router.nearestNode(lat: c.lat, lng: c.lng) {
+                goalNodes = [node]
+            } else {
                 routingError = "No walking path reaches that spot."
                 return
             }
-            goalNodes = [node]
         }
 
         guard !goalNodes.isEmpty else {
@@ -311,6 +342,48 @@ public final class AppModel {
     }
 
     public func route(_ id: Int) -> BusRoute? { pack.bus.routes.first { $0.id == id } }
+
+    // MARK: Study spaces
+
+    /// Bookable rooms, free ones first, then by building and name.
+    public var studySpaces: [Place] {
+        pack.places
+            .filter { $0.kind == "study" && $0.isBookable }
+            .sorted { a, b in
+                let fa = status(for: a)?.isFree ?? false
+                let fb = status(for: b)?.isFree ?? false
+                if fa != fb { return fa }
+                let na = buildingName(for: a), nb = buildingName(for: b)
+                return na == nb ? a.displayName < b.displayName : na < nb
+            }
+    }
+
+    public func buildingName(for place: Place) -> String {
+        place.buildingId.flatMap(building)?.shortName ?? "Elsewhere"
+    }
+
+    public func status(for place: Place) -> Availability.Status? {
+        place.bookingId.flatMap { studyAvailability[$0] }?.status()
+    }
+
+    public var freeStudyCount: Int {
+        studySpaces.filter { status(for: $0)?.isFree == true }.count
+    }
+
+    public func refreshStudyAvailability() async {
+        guard !isRefreshingStudy else { return }
+        let locationIDs = Set(pack.places.compactMap(\.locationId))
+        guard !locationIDs.isEmpty else { return }
+        isRefreshingStudy = true
+        defer { isRefreshingStudy = false }
+        do {
+            studyAvailability = try await study.availability(locationIDs: Array(locationIDs).sorted(), on: Date())
+            studyUpdatedAt = Date()
+            studyError = nil
+        } catch {
+            studyError = error.localizedDescription
+        }
+    }
 
     public func vehicles(onRoute id: Int) -> [Vehicle] { vehicles.filter { $0.routeID == id } }
 

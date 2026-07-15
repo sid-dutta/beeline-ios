@@ -44,6 +44,7 @@ public struct BeelineRootView: View {
         .task {
             location.request()
             await model.refreshBus()
+            await model.refreshStudyAvailability()
         }
         .onChange(of: location.coordinate?.latitude) {
             model.origin = location.coordinate

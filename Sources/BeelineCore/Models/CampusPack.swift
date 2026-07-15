@@ -80,8 +80,26 @@ public struct Place: Codable, Hashable, Sendable, Identifiable {
     public var id: String
     public var name: String
     public var kind: String
-    public var lat: Double
-    public var lng: Double
+    /// Bookable study rooms have no coordinate of their own — they live
+    /// inside a building, and `coordinate(in:)` resolves that.
+    public var lat: Double?
+    public var lng: Double?
+    public var source: String?
+    public var buildingId: String?
+    public var room: String?
+    public var capacity: Int?
+    /// LibCal identifiers, for looking up live availability.
+    public var bookingId: Int?
+    public var locationId: Int?
+    public var url: String?
+
+    public var isBookable: Bool { bookingId != nil }
+
+    /// A room title already carries its capacity; strip it for display.
+    public var displayName: String {
+        guard let range = name.range(of: " (Capacity") else { return name }
+        return String(name[..<range.lowerBound])
+    }
 }
 
 public struct GraphNode: Codable, Hashable, Sendable {

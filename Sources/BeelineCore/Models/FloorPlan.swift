@@ -60,6 +60,16 @@ public struct FloorPlan: Codable, Hashable, Sendable, Identifiable {
 }
 
 public extension CampusPack {
+    /// A place's position: its own point, or the building that contains it.
+    func coordinate(of place: Place) -> Coordinate? {
+        if let lat = place.lat, let lng = place.lng {
+            return Coordinate(lat: lat, lng: lng)
+        }
+        guard let id = place.buildingId,
+              let building = buildings.first(where: { $0.id == id }) else { return nil }
+        return Coordinate(lat: building.lat, lng: building.lng)
+    }
+
     func floorPlan(for buildingID: String) -> FloorPlan? {
         floorplans.first { $0.buildingId == buildingID }
     }

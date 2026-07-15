@@ -10,7 +10,8 @@ GT's official map stops at the building outline, and the bus app shows a route m
 
 ## What it does
 
-- **Search anything** — `Klaus 1443`, `CS 1332`, "Clough", "food", "restrooms". One field, ranked results across 380 buildings, 333 rooms, 45 teaching buildings and 183 places.
+- **Search anything** — `Klaus 1443`, `CS 1332`, "Clough", "food", "restrooms". One field, ranked results across 380 buildings, 333 rooms and 382 places.
+- **Find a free study room** — all 41 bookable library rooms with *live* availability from LibCal: which are free, until when, and one swipe to book. Free rooms sort first.
 - **Walk you there** — A* over a 12,400-node campus path graph built from OpenStreetMap footways. It picks the closest usable entrance, prefers paths over roads, and can avoid stairs entirely.
 - **Tell you where the room is** — for Clough, the actual published floor plan with your room ringed on it and a floor picker down the side. Everywhere else, floor and wing decoded from the room number, with per-building rules for the ones that break convention (Howey's `L3` lecture halls, Klaus's atrium halls, College of Computing's two-digit rooms). The app says which of the two it's showing, because the confidence differs.
 - **Know your schedule** — add your sections and the map opens on "next class, 6 min walk, leave by 1:24".
@@ -24,13 +25,14 @@ Sources/
 │   ├── Models/           The campus data pack, decoded
 │   ├── Routing/          A* router + turn-by-turn direction generation
 │   ├── Bus/              Ride Systems live client (+ a preview double)
+│   ├── Study/            LibCal availability: free-now, free-until
 │   ├── RoomDecoder       Room number → floor, wing, hint
 │   ├── FloorPlan         Published plans: page image + room positions
 │   ├── Search            One index over buildings, rooms, courses, places
 │   └── Schedule          Enrolled sections → weekly events, "what's next"
 ├── BeelineUI/            SwiftUI views and the @Observable AppModel
 └── App/Beeline/          @main — ten lines
-Tests/BeelineCoreTests/   43 XCTest cases
+Tests/BeelineCoreTests/   57 XCTest cases
 ```
 
 The core has no UI dependency, so it builds and tests on a Mac with `swift test` — no simulator needed. `BeelineUI` compiles for macOS too, which keeps the whole package type-checkable from the command line.
@@ -53,7 +55,9 @@ open Beeline.xcodeproj
 
 ## Status
 
-Working: search, outdoor routing with turn-by-turn, room decoding, Clough floor plans, class schedule, live buses.
+Working: search, outdoor routing with turn-by-turn, room decoding, Clough floor plans, class schedule, live buses, live study-room availability.
+
+**On place data.** Georgia Tech publishes points for *gender-inclusive single-occupancy* restrooms (82 of them) — not for every restroom — so that is exactly what the app calls them. The 54 vending machines are all named "Vending Machine" upstream, so the pipeline appends the building each one sits in. Food comes mostly from OpenStreetMap, which has 5× the coverage of the campus map. Bus stops come from the bus feed itself.
 
 Clough is the only building at Georgia Tech that publishes floor plans. Its five pages are parsed for room positions in the pipeline and shipped as images — 81% of Clough's scheduled class meetings land on an exact spot on a real plan; the rest still get the right floor.
 
